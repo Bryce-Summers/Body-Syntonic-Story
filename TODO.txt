@@ -1,0 +1,74 @@
+TODO
+
+TODO: Go through and report all three.js bugs, also make sure to update to the latest version of three.js
+
+Implement support for custom line thicknesses on windows...
+
+
+Put all positioning and scaling functions in one place.
+
+Create a design folder and put various universal properties there.
+
+Create a Model Class that will store the logic for a scene.
+
+Make game scale with the viewport dynamically.
+
+Make sure to roll off different versions. Use Grunt Uglify...
+
+
+Dispose of THREE.js Geoemtry objects! Make sure we are not leaking memory.
+
+
+Discretize at different levels of prescision absed on viewport and whether we are using them for collision detection or visual rendering.
+
+
+NewVertex.
+
+Link Vertices.
+
+Unit test Bryce Data Structures.
+
+Standardize the mechanisms for destroying elements.
+
+
+Right now, I am working on letting the user draw scribble.js topologically linked polylines and making the cooresponding roads.
+- Draw polylines on the screen.
+- Maintain a graph with a SCRIBBLE.JS polyline graph post processor.
+- Convert 
+
+
+I would like to hide the THREE.js stuff inside of the element super class and provide an interface with BDS.Points.
+
+ - Implement traffic flow.
+ - Implement traffic lights.
+ - Lane markings near intersections.
+ - Intersection geometry.
+ - Detect degenerate geometry.
+
+Roads:
+ - Fix cutting topological bug.
+ - Have roads produce arcs, instead of quadratic bezier curves.
+ - Have highlight be constrained to point in road face, rather than point in road bounding box.
+ - Fix endpoint behavior and building a road with a point inside of another road, rather than crossing it with a line.
+   The logic is there, but the functionality is not.
+
+ - Fix bugs from degenerate roads, such as those formed when by faulty mouse double clicks in the same place accidently.
+ - Detect Road self intersections.
+ - Color code the road creation to enhance the user experience.
+ - Do legality checking.
+
+ - Investigate Topology Bug.
+ - Constrain curves to Pi/2 Radians (90 degrees) max.
+ - Create a sophisticated user experience and Legal road detection and feedback to the user.
+
+
+Game Design:
+ - Consider providing limitations on how the roads may be directed. Randomness provides a random signal that is often not interestin to players.
+ 
+
+As of 12 - 11 - 2017 and a couple of months before, I have changed to a different approach to modelling and am in the process of refactoring.
+This TODO list is rather outdated and of limited use now.
+
+My current question is, where am I meant to add define a square visual representation?
+I think that test place is the entire room. It has no defined visual representation.
+My guide is my diagram on a slip of paper.

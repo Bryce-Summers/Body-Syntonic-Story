@@ -1,0 +1,61 @@
+#
+# Operators events along paths that perform a mutation within an agent.
+# Written by Bryce Summers on Mar.22.2018
+# 
+# Elements consist of a simple visual depiction.
+# Models contain the mutation mathmatics.
+#
+
+class BSS.Operator_Element extends BSS.Element
+
+    # All agents have to be located on a path.
+    constructor: () ->
+
+        super(new BSS.Operator_Model())
+
+        # Default configuration.
+        @buildFromConfiguration()
+
+    ### Representation building from path mathmatics. ###
+    buildFromConfiguration: () ->
+        container = @getVisualRepresentation()
+
+        # Remove all previous sub visual elements from the visual representation.
+        container.clearVisuals()
+
+        # Operators have a visual depiction. For now we will just use a circle.
+        
+        operator_visual = EX.Visual_Factory.newPoint(new BDS.Point(0, 0), EX.style.c_operator_fill, EX.style.radius_operator_default)
+        container.addVisual(operator_visual)
+
+        number = EX.Visual_Factory.new_label("1")
+        container.addVisual(number)
+
+        # Brake down character visual into body and legs.
+        return
+
+    # Reposition's this operator's representation based on its model.
+    # Uses model's location, orientation, and percentage.
+    reposition: () ->
+        [loc, up] = @getModel().getCurrentLocationAndHeading()
+
+        visual = @getVisualRepresentation()
+        visual.setPosition(loc)
+        visual.setUpDirection(up) # Rotate within the view plane.
+        return
+
+    # Constructs location and orientation from current representation.
+    getRepresentationLocationAndHeading: () ->
+        visual = @getVisualRepresentation()
+        pos = visual.getPosition()
+        loc = new BDS.Point(pos.x, pos.y)
+        angle = visual.getRotation()
+        dx = Math.cos(angle)
+        dy = Math.sin(angle)
+        tan = new BDS.Point(dx, dy)
+
+        return [loc, tan]
+
+    ### Element Interface. ###
+
+    

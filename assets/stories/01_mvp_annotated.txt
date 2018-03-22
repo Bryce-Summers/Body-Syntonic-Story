@@ -1,0 +1,13 @@
+/* A minnimal viable story, used to test the basic structure of my system.
+ * 
+ * Written by Bryce Summer on March 20th, 2018. My sister's birthday.
+ * Comments are ignored.
+ */
+
+story MVP // First story block is assumed to be the beginning the story.
+// The player sees their character onscreen as a top down view of a circle representing their head.
+// The player will be given a minnimum indication that they should press 'up'.
+// An upwards pointing arrow appears inside of the head, showing the current psychology of the person.
+  up 3   // 3 segments of upwards/forwards going path.
+  food 6 // 6 segments of food.
+the end // The story ends.

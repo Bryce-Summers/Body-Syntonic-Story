@@ -1,0 +1,51 @@
+# Programming Guide
+
+Please put all core functions inside other BSS namespace.
+
+Generic classes that can be reused across projects are house in the EX namespace.
+
+instead of "class foo", write class BSS.foo.
+
+
+Most of the geometries that we will be using will be instantiated at the origin and will be controled through scales, rotations, and positioning.
+
+Because of the grunt build include ordering, super classes need to be included in the html file before sub classes...
+
+
+Use the Unit_Meshes class for allocating meshes.
+
+
+My custom defined mesh classes will implement their own clone function.
+
+# Rendering.
+Each place defines its own object space. the global camera never moves, rather 
+?? Do I want the global camera to move, or to stay in one place so that the UI is consistent?
+# Global camera never moves, rather the scene moves inversly. UI elements are always directly aligned with the screen.
+
+
+
+# Branches
+
+This project will have several branches called i1, i2, i3, i[x], etc. that represent diffferent iterations for the project.
+
+Here is what each of these iterations means:
+
+i1: 
+
+
+# GIT
+To checkout a remote branch use:
+git fetch
+git checkout i[x]
+
+# Grunt
+
+run 'grunt' to include all of the files.
+run 'grunt concat' to build a single file.
+
+
+
+Models are assumed to point to other models, elements to other elements.
+Elements glue stuff together, models are mainly in the realm of mathmatics.
+
+

@@ -1,0 +1,6 @@
+[submodule "modules/ScribbleJS"]
+	path = modules/ScribbleJS
+	url = https://github.com/Bryce-Summers/ScribbleJS.git
+[submodule "modules/BDS.js"]
+	path = modules/BDS.js
+	url = https://github.com/Bryce-Summers/BDS.js.git
