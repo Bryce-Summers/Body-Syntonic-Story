@@ -36,6 +36,10 @@ class BSS.Agent_Model extends BSS.Model
 
         @speed = 20 # 1 pixel per second.
 
+        # Controls forwards, stopped, backwards movement and multiples.
+        # 1, 0, -1, x2,3,4...
+        @speed_multiple = 0
+
     buildModel: () ->
 
         @statistics     = new BSS.Statistics_Model()
@@ -72,7 +76,7 @@ class BSS.Agent_Model extends BSS.Model
     moveAlongPath: (dt, percentages_per_meter) ->
 
         # Agents operate in meters (pixel) space, but also in percentage space along paths.
-        dPercentage = dt*@speed*percentages_per_meter # s * (m/s) * (%/m)
+        dPercentage = dt*@speed*@speed_multiple*percentages_per_meter # s * (m/s) * (%/m)
         
         @percentage += dPercentage
 
@@ -119,6 +123,12 @@ class BSS.Agent_Model extends BSS.Model
 
     # Mutates this agent based on the operations dictated by the given operator model.
     operate: (operator) ->
-        console.log("FIXME PLEASE! Do something.")
-        food = @statistics.getFood()
-        @statistics.setFood(food + 1)
+
+        # (Object Model) -> enacts a mutation.
+        func = operator.getFunction()
+        func(@)
+        return
+
+    # Given an integer, sets this agent's speed multiple.
+    setSpeed: (speed) ->
+        @speed_multiple = speed

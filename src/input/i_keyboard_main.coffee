@@ -15,11 +15,11 @@ class EX.I_Keyboard_Main extends BDS.Controller_Group
 
         super()
 
-        # Represents all of the buttons.
-        ###
-        @key_controller = new EX.Key_Controller(@scene, @camera)
-        @add_keyboard_input_controller(@ui_controller)
-        ###
+        
+        # Have the camera follow the focus agent, mainly the player's embodied agent.
+        controlPlayer = new EX.Keyboard_ControlPlayer(@scene, @camera)
+        @add_keyboard_input_controller(controlPlayer)
+        controlPlayer.setActive(true)
 
         @state = "idle"
 

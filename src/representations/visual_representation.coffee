@@ -62,7 +62,7 @@ class BSS.Visual_Representation
     # Sets the rotation to the given up direction.
     setUpDirection: (up) ->
         up = up.normalize()
-        angle = Math.atan2(up.y, up.x)
+        angle = Math.atan2(up.y, up.x) + Math.PI/2
         @setRotation(angle)
 
     setScale: (scale) ->

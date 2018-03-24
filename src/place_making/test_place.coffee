@@ -40,8 +40,25 @@ class BSS.Test_Place extends BSS.Place_Element
             @addPath(path_element)
 
         for i in [1 .. 9]
+            # food increasing operators.
             operator = new BSS.Operator_Element()
-            path_element.addOperator(operator, i*1.0/10) # adds an operator at .9 percentage down the path.
+            operator.setFunction((agent_model) ->
+                food = agent_model.statistics.getFood()
+                agent_model.statistics.setFood(food + 1)
+                )
+
+            path_element.addOperator(operator, i*1.0/10) # adds an operator at 10's of the way down the path.
+            @addOperator(operator)
+
+        # Add a narrative event near the beginning of the path.
+        operator = new BSS.Operator_Element()
+        operator.setFunction((agent_model) ->
+            agent_model.statistics.setNarrative("The body is an accumulation of food.")
+            )
+
+        path_element.addOperator(operator, .001) # adds an operator at .001 percentage down the path.
+        @addOperator(operator)
+
 
         player_character = new BSS.Agent_Element()
         first_path.addAgent(player_character) # paths and places contain and act on agents, agents themselves don't act on the world.

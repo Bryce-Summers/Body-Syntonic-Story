@@ -12,8 +12,9 @@ EX.init_style = () ->
 
         resource_name_food: "Food: ",
 
-        radius_path_default: 50,
-        radius_operator_default: 30,
+        radius_path_default: 50, # Actually a diameter.
+        radius_operator_default: 10,
+        radius_agent_default: 20,
 
         radius_road_local:     50,
         radius_road_collector: 75,
@@ -41,7 +42,7 @@ EX.init_style = () ->
         c_road_midline:       new THREE.Color(0x514802),
         c_road_outline:       new THREE.Color(0x000000),
 
-        c_operator_fill:      new THREE.Color(0x888888),
+        c_operator_fill:      new THREE.Color(0xbbbbbb),
 
         c_default_line:       new THREE.Color(0x000000),
         #road_lane_line  = 

@@ -26,15 +26,7 @@ class BSS.Agent_Element extends BSS.Element
         [loc, up] = model.getCurrentLocationAndHeading()
 
         # FIXME: Points are not working properly.
-        #character_visual = EX.Visual_Factory.newPoint(loc, EX.style.c_car_fill, 10)
-        p0 = new BDS.Point(0, 0)
-        p1 = new BDS.Point(0, 10)
-        p2 = new BDS.Point(10, 0)
-        pLine0 = new BDS.Polyline(false, [p0, p1])
-        pLine1 = new BDS.Polyline(false, [p0, p2])
-        character_visual = EX.Visual_Factory.newPath(pLine0, EX.style.radius_path_default, EX.style.c_car_fill, true)
-        container.addVisual(character_visual)
-        character_visual = EX.Visual_Factory.newPath(pLine1, EX.style.radius_path_default, EX.style.c_car_fill, true)
+        character_visual = EX.Visual_Factory.newPoint(loc, EX.style.c_car_fill, EX.style.radius_agent_default)
         container.addVisual(character_visual)
 
         # Brake down character visual into body and legs.

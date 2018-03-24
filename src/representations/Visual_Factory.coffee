@@ -102,7 +102,6 @@ class EX.Visual_Factory
 
 
     @newPoint: (pt, color, radius) ->
-
         scale = new THREE.Vector3(radius, radius, 1)
 
         pos = new THREE.Vector3(pt.x, pt.y, 1)

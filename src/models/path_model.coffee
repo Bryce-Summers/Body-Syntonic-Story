@@ -47,14 +47,20 @@ class BSS.Path_Model extends BSS.Model
             agent.moveAlongPath(dt, percentages_per_meter) # moves agent in percentage space with conversion factor.
 
             # Now check to see if the agent has moved past an operator event.
-            oper = @getNextOperator(per_start) # {operator:, percentage:}
-            if oper != null
+            # If so, proccess all operators.
+            oper_index = @getNextOperatorIndex(per_start) # {operator:, percentage:}
+            if oper_index != null
+                oper = @operators[oper_index]
                 per_operator = oper.percentage
                 per_end = agent.getPercentage()
 
-                if per_end >= per_operator
-                    operator = oper.operator
-                    agent.operate(operator)
+                # If we've moved past an operation, then perform all operations between its start and end percentage.
+                while oper_index < @operators.length and oper.percentage <= per_end
+                    agent.operate(oper.operator)
+                    oper_index += 1
+                    # Next oper.
+                    oper = @operators[oper_index]
+
 
             agent = agent.getNextAgent()
 
@@ -89,15 +95,16 @@ class BSS.Path_Model extends BSS.Model
         @last_agent = agent_model
 
     # returns the next {operator:, percentage:} object or null if none exists.
-    getNextOperator: (percentage) ->
+    getNextOperatorIndex: (percentage) ->
         oper = {operator:null, percentage:percentage}
         lower_bound = BDS.Arrays.binarySearch(@operators, oper, (a, b) -> a.percentage <= b.percentage)
 
         if lower_bound >= @operators.length - 1
             return null
 
-        return @operators[lower_bound + 1]
+        return lower_bound + 1
 
+    # Assumed is given an operator model.
     addOperator: (operator, percentage) ->
         
         oper = {operator:operator, percentage:percentage}
@@ -112,7 +119,7 @@ class BSS.Path_Model extends BSS.Model
         new_opers.push(oper)
 
         for i in [insert_index + 1 ...@operators.length] by 1
-            new_opers.push(oper)
+            new_opers.push(@operators[i])
 
         @operators = new_opers
 

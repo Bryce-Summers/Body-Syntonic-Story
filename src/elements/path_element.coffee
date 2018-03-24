@@ -82,8 +82,11 @@ class BSS.Path_Element extends BSS.Element
 
     addOperator: (operator, percentage) ->
         path_model = @getModel()
-        path_model.addOperator(operator, percentage)
+        operator_model = operator.getModel()
+        path_model.addOperator(operator_model, percentage)
 
+        operator.setPath(@, percentage)
+        operator.reposition()
 
     ### Inputs ###
     time: (dt) ->

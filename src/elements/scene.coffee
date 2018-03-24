@@ -18,13 +18,16 @@ class BSS.Scene
 
         # instantiate the root view of the scene graph.
         @root_visual = new THREE.Scene()
+
         @view = new THREE.Object3D()
+        @view.name = "Scene view."
         @overlays = new THREE.Object3D()
         @overlays.position.z = 1.0 # Display overlays over top of all other layers. the overlays will be a non moving HUD.
+        @overlays.name = "Overlays."
 
         @root_visual.add(@overlays)
         @root_visual.add(@view)
-        
+      
 
         # Define the overall fields used in the game.
         @_view_levels = null

@@ -6,7 +6,7 @@
     Written by Bryce Summers on 11/22/2016.
     
     Purpose:
-     - Provides a unit square that can then be scaled, positioned, and rotated.
+     - Provides a unit circle that can then be scaled, positioned, and rotated.
 ###
 
 class EX.Mesh_Unit_Circle extends EX.Mesh_Basic
@@ -24,6 +24,7 @@ class EX.Mesh_Unit_Circle extends EX.Mesh_Basic
         # FIXME: Construct a circle outline.
 
         outline = new THREE.Geometry();
+
         ###
         outline.vertices.push(
             new THREE.Vector3( -.5, -.5, 0 ),
@@ -31,7 +32,8 @@ class EX.Mesh_Unit_Circle extends EX.Mesh_Basic
             new THREE.Vector3(  .5,  .5, 0 ),
             new THREE.Vector3( -.5,  .5, 0 ),
             new THREE.Vector3( -.5, -.5, 0 ) # Closed.
-        );
+        )
         ###
+        
 
         super(geometry, outline)

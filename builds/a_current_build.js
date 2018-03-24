@@ -1,5 +1,5 @@
 /*! Sim Urban, a project by Bryce Summers.
- *  Single File concatenated by Grunt Concatenate on 22-03-2018
+ *  Single File concatenated by Grunt Concatenate on 24-03-2018
  */
 // All of the boiler plate, example project stuff should be out of a namespace.
 // all of the procedural elements unique to a project should be within this projects' specific namespace.
@@ -118,19 +118,12 @@ BSS = {};
     /* Representation building from path mathmatics. */
 
     Agent_Element.prototype.buildFromConfiguration = function() {
-      var character_visual, container, loc, model, p0, p1, p2, pLine0, pLine1, ref, up;
+      var character_visual, container, loc, model, ref, up;
       container = this.getVisualRepresentation();
       container.clearVisuals();
       model = this.getModel();
       ref = model.getCurrentLocationAndHeading(), loc = ref[0], up = ref[1];
-      p0 = new BDS.Point(0, 0);
-      p1 = new BDS.Point(0, 10);
-      p2 = new BDS.Point(10, 0);
-      pLine0 = new BDS.Polyline(false, [p0, p1]);
-      pLine1 = new BDS.Polyline(false, [p0, p2]);
-      character_visual = EX.Visual_Factory.newPath(pLine0, EX.style.radius_path_default, EX.style.c_car_fill, true);
-      container.addVisual(character_visual);
-      character_visual = EX.Visual_Factory.newPath(pLine1, EX.style.radius_path_default, EX.style.c_car_fill, true);
+      character_visual = EX.Visual_Factory.newPoint(loc, EX.style.c_car_fill, EX.style.radius_agent_default);
       container.addVisual(character_visual);
     };
 
@@ -173,8 +166,14 @@ BSS = {};
 
     function Operator_Element() {
       Operator_Element.__super__.constructor.call(this, new BSS.Operator_Model());
+      this._path = null;
+      this._percentage = null;
       this.buildFromConfiguration();
     }
+
+    Operator_Element.prototype.setFunction = function(func) {
+      return this.getModel().setFunction(func);
+    };
 
 
     /* Representation building from path mathmatics. */
@@ -186,15 +185,25 @@ BSS = {};
       operator_visual = EX.Visual_Factory.newPoint(new BDS.Point(0, 0), EX.style.c_operator_fill, EX.style.radius_operator_default);
       container.addVisual(operator_visual);
       number = EX.Visual_Factory.new_label("1");
+      number.position.x = -1;
       container.addVisual(number);
     };
 
     Operator_Element.prototype.reposition = function() {
       var loc, ref, up, visual;
-      ref = this.getModel().getCurrentLocationAndHeading(), loc = ref[0], up = ref[1];
+      ref = this.getCurrentLocationAndHeading(), loc = ref[0], up = ref[1];
       visual = this.getVisualRepresentation();
       visual.setPosition(loc);
       visual.setUpDirection(up);
+    };
+
+    Operator_Element.prototype.setPath = function(path, percentage) {
+      this._path = path;
+      return this._percentage = percentage;
+    };
+
+    Operator_Element.prototype.getCurrentLocationAndHeading = function() {
+      return this._path.getLocation(this._percentage);
     };
 
     Operator_Element.prototype.getRepresentationLocationAndHeading = function() {
@@ -284,9 +293,12 @@ BSS = {};
     };
 
     Path_Element.prototype.addOperator = function(operator, percentage) {
-      var path_model;
+      var operator_model, path_model;
       path_model = this.getModel();
-      return path_model.addOperator(operator, percentage);
+      operator_model = operator.getModel();
+      path_model.addOperator(operator_model, percentage);
+      operator.setPath(this, percentage);
+      return operator.reposition();
     };
 
 
@@ -459,8 +471,10 @@ BSS = {};
     function Scene() {
       this.root_visual = new THREE.Scene();
       this.view = new THREE.Object3D();
+      this.view.name = "Scene view.";
       this.overlays = new THREE.Object3D();
       this.overlays.position.z = 1.0;
+      this.overlays.name = "Overlays.";
       this.root_visual.add(this.overlays);
       this.root_visual.add(this.view);
       this._view_levels = null;
@@ -652,14 +666,13 @@ BSS = {};
     extend(I_Keyboard_Main, superClass);
 
     function I_Keyboard_Main(scene, camera) {
+      var controlPlayer;
       this.scene = scene;
       this.camera = camera;
       I_Keyboard_Main.__super__.constructor.call(this);
-
-      /*
-      @key_controller = new EX.Key_Controller(@scene, @camera)
-      @add_keyboard_input_controller(@ui_controller)
-       */
+      controlPlayer = new EX.Keyboard_ControlPlayer(this.scene, this.camera);
+      this.add_keyboard_input_controller(controlPlayer);
+      controlPlayer.setActive(true);
       this.state = "idle";
     }
 
@@ -1005,8 +1018,23 @@ Notes:
     }
 
     Mesh_Basic.prototype.clone = function(params) {
-      var mesh, outline, output;
+
+      /*
+      geometry = new THREE.CircleGeometry( .5, 32 );
+      material = new THREE.MeshBasicMaterial( { color: 0xffff00, side: THREE.DoubleSide } );
+      circle = new THREE.Mesh( geometry, material );
+      circle.scale.x = params.scale.x
+      circle.scale.y = params.scale.y
+      circle.position.x = params.position.x
+      circle.position.y = params.position.y
+      #circle.rotation.x = Math.PI/4
+      #circle.rotation.y = Math.PI/4
+      #circle.rotation.z = Math.PI/4
+      return circle
+       */
+      var geometry, mesh, outline, output;
       output = new THREE.Object3D();
+      geometry = this.geometry;
       mesh = new EX.Mesh_Basic(this.geometry);
       outline = new THREE.Line(this.outline_geometry, this.line_material);
       outline.renderOrder = 1;
@@ -1020,6 +1048,12 @@ Notes:
           debugger;
         }
         mesh.material.color = params.color;
+      }
+      if (params.scale) {
+        output.scale.copy(params.scale.clone());
+      }
+      if (params.position) {
+        output.position.copy(params.position.clone());
       }
       output.setFillColor = function(c) {
         return this.children[0].material.color = c;
@@ -1136,6 +1170,7 @@ Notes:
       this.representation = null;
       this.buildModel();
       this.speed = 20;
+      this.speed_multiple = 0;
     }
 
     Agent_Model.prototype.buildModel = function() {
@@ -1170,7 +1205,7 @@ Notes:
 
     Agent_Model.prototype.moveAlongPath = function(dt, percentages_per_meter) {
       var dPercentage;
-      dPercentage = dt * this.speed * percentages_per_meter;
+      dPercentage = dt * this.speed * this.speed_multiple * percentages_per_meter;
       this.percentage += dPercentage;
       if (this.percentage > 1.0) {
         this.percentage = 1.0;
@@ -1209,10 +1244,13 @@ Notes:
     };
 
     Agent_Model.prototype.operate = function(operator) {
-      var food;
-      console.log("FIXME PLEASE! Do something.");
-      food = this.statistics.getFood();
-      return this.statistics.setFood(food + 1);
+      var func;
+      func = operator.getFunction();
+      func(this);
+    };
+
+    Agent_Model.prototype.setSpeed = function(speed) {
+      return this.speed_multiple = speed;
     };
 
     return Agent_Model;
@@ -1477,6 +1515,14 @@ Notes:
 
     Operator_Model.prototype.buildModel = function() {};
 
+    Operator_Model.prototype.setFunction = function(func) {
+      return this._mutation_function = func;
+    };
+
+    Operator_Model.prototype.getFunction = function() {
+      return this._mutation_function;
+    };
+
     return Operator_Model;
 
   })(BSS.Model);
@@ -1507,19 +1553,21 @@ Notes:
     }
 
     Path_Model.prototype.moveAgents = function(dt) {
-      var agent, oper, operator, per_end, per_operator, per_start, percentages_per_meter;
+      var agent, oper, oper_index, per_end, per_operator, per_start, percentages_per_meter;
       agent = this.last_agent;
       percentages_per_meter = 1.0 / this._distance;
       while (agent !== null && agent.getNavigation().getCurrentLocation() === this) {
         per_start = agent.getPercentage();
         agent.moveAlongPath(dt, percentages_per_meter);
-        oper = this.getNextOperator(per_start);
-        if (oper !== null) {
+        oper_index = this.getNextOperatorIndex(per_start);
+        if (oper_index !== null) {
+          oper = this.operators[oper_index];
           per_operator = oper.percentage;
           per_end = agent.getPercentage();
-          if (per_end >= per_operator) {
-            operator = oper.operator;
-            agent.operate(operator);
+          while (oper_index < this.operators.length && oper.percentage <= per_end) {
+            agent.operate(oper.operator);
+            oper_index += 1;
+            oper = this.operators[oper_index];
           }
         }
         agent = agent.getNextAgent();
@@ -1554,7 +1602,7 @@ Notes:
       return this.last_agent = agent_model;
     };
 
-    Path_Model.prototype.getNextOperator = function(percentage) {
+    Path_Model.prototype.getNextOperatorIndex = function(percentage) {
       var lower_bound, oper;
       oper = {
         operator: null,
@@ -1566,7 +1614,7 @@ Notes:
       if (lower_bound >= this.operators.length - 1) {
         return null;
       }
-      return this.operators[lower_bound + 1];
+      return lower_bound + 1;
     };
 
     Path_Model.prototype.addOperator = function(operator, percentage) {
@@ -1584,7 +1632,7 @@ Notes:
       }
       new_opers.push(oper);
       for (i = k = ref1 = insert_index + 1, ref2 = this.operators.length; k < ref2; i = k += 1) {
-        new_opers.push(oper);
+        new_opers.push(this.operators[i]);
       }
       this.operators = new_opers;
     };
@@ -1796,8 +1844,20 @@ This is a test place, it initializes the MVP story to test functionality, before
       }
       for (i = k = 1; k <= 9; i = ++k) {
         operator = new BSS.Operator_Element();
+        operator.setFunction(function(agent_model) {
+          var food;
+          food = agent_model.statistics.getFood();
+          return agent_model.statistics.setFood(food + 1);
+        });
         path_element.addOperator(operator, i * 1.0 / 10);
+        this.addOperator(operator);
       }
+      operator = new BSS.Operator_Element();
+      operator.setFunction(function(agent_model) {
+        return agent_model.statistics.setNarrative("The body is an accumulation of food.");
+      });
+      path_element.addOperator(operator, .001);
+      this.addOperator(operator);
       player_character = new BSS.Agent_Element();
       first_path.addAgent(player_character);
       this.addAgent(player_character);
@@ -2131,7 +2191,8 @@ Purpose: Creates THREE.js paths.
     EX.style = {
       resource_name_food: "Food: ",
       radius_path_default: 50,
-      radius_operator_default: 30,
+      radius_operator_default: 10,
+      radius_agent_default: 20,
       radius_road_local: 50,
       radius_road_collector: 75,
       radius_road_artery: 100,
@@ -2156,7 +2217,7 @@ Purpose: Creates THREE.js paths.
       c_road_fill: new THREE.Color(0x888888),
       c_road_midline: new THREE.Color(0x514802),
       c_road_outline: new THREE.Color(0x000000),
-      c_operator_fill: new THREE.Color(0x888888),
+      c_operator_fill: new THREE.Color(0xbbbbbb),
       c_default_line: new THREE.Color(0x000000),
       AABB_testing_material: new THREE.LineBasicMaterial({
         color: 0x0000ff
@@ -2552,7 +2613,7 @@ Purpose: Creates THREE.js paths.
     Visual_Representation.prototype.setUpDirection = function(up) {
       var angle;
       up = up.normalize();
-      angle = Math.atan2(up.y, up.x);
+      angle = Math.atan2(up.y, up.x) + Math.PI / 2;
       return this.setRotation(angle);
     };
 
@@ -2901,6 +2962,51 @@ Has the camera follow an agent.
   var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     hasProp = {}.hasOwnProperty;
 
+  EX.Keyboard_ControlPlayer = (function(superClass) {
+    extend(Keyboard_ControlPlayer, superClass);
+
+    function Keyboard_ControlPlayer(scene, camera) {
+      this.scene = scene;
+      this.camera = camera;
+      this.up_pressed = false;
+    }
+
+    Keyboard_ControlPlayer.prototype.key_down = function(event) {
+      var agent, agent_model;
+      if (!this.up_pressed && event.key === "ArrowUp") {
+        agent = this.scene.getFocusAgent();
+        agent_model = agent.getModel();
+        return agent_model.setSpeed(1);
+      }
+    };
+
+    Keyboard_ControlPlayer.prototype.key_up = function(event) {};
+
+    Keyboard_ControlPlayer.prototype.time = function(dt) {};
+
+    Keyboard_ControlPlayer.prototype.isIdle = function() {
+      return true;
+    };
+
+    Keyboard_ControlPlayer.prototype.finish = function() {};
+
+    return Keyboard_ControlPlayer;
+
+  })(EX.I_Tool_Controller);
+
+}).call(this);
+
+// Generated by CoffeeScript 1.11.1
+
+/*
+Written by Bryce Summers on Mar.21.2018
+Has the camera follow an agent.
+ */
+
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
   EX.TimeTool_CameraFollowsAgent = (function(superClass) {
     extend(TimeTool_CameraFollowsAgent, superClass);
 
@@ -2976,7 +3082,7 @@ Updates the scene's ui based on the statistics of the focus agent.
       }
       if (statistics.narrativeChanged()) {
         textbox = ui_elements.textbox;
-        textbox.str = EX.style.resource_name_food + statistics.getNarrative();
+        textbox.str = statistics.getNarrative();
         return ui.updateLabel(textbox, {
           update_str: true
         });
@@ -3041,7 +3147,7 @@ Sends time update commands to all of the places.
     Written by Bryce Summers on 11/22/2016.
     
     Purpose:
-     - Provides a unit square that can then be scaled, positioned, and rotated.
+     - Provides a unit circle that can then be scaled, positioned, and rotated.
  */
 
 (function() {
@@ -3067,7 +3173,7 @@ Sends time update commands to all of the places.
           new THREE.Vector3(  .5,  .5, 0 ),
           new THREE.Vector3( -.5,  .5, 0 ),
           new THREE.Vector3( -.5, -.5, 0 ) # Closed.
-      );
+      )
        */
       Mesh_Unit_Circle.__super__.constructor.call(this, geometry, outline);
     }
@@ -3329,6 +3435,12 @@ function onKeyPress( event )
     // Key codes for event.which.
     var LEFT  = 37
     var RIGHT = 39
+    input.key_down(event)
+}
+
+function onKeyUp( event )
+{
+    input.key_up(event)
 }
 
 function onMouseMove( event )

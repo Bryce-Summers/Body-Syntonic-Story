@@ -149,6 +149,12 @@ function onKeyPress( event )
     // Key codes for event.which.
     var LEFT  = 37
     var RIGHT = 39
+    input.key_down(event)
+}
+
+function onKeyUp( event )
+{
+    input.key_up(event)
 }
 
 function onMouseMove( event )

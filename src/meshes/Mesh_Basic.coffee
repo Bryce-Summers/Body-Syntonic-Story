@@ -20,7 +20,26 @@ class EX.Mesh_Basic extends THREE.Mesh
 
     # color: THREE.Color fill color.
     clone: (params) ->
-        output  = new THREE.Object3D()
+
+        ###
+        geometry = new THREE.CircleGeometry( .5, 32 );
+        material = new THREE.MeshBasicMaterial( { color: 0xffff00, side: THREE.DoubleSide } );
+        circle = new THREE.Mesh( geometry, material );
+        circle.scale.x = params.scale.x
+        circle.scale.y = params.scale.y
+        circle.position.x = params.position.x
+        circle.position.y = params.position.y
+        #circle.rotation.x = Math.PI/4
+        #circle.rotation.y = Math.PI/4
+        #circle.rotation.z = Math.PI/4
+        return circle
+        ###
+
+
+
+
+        output  = new THREE.Object3D() 
+        geometry = @geometry
         mesh    = new EX.Mesh_Basic(@geometry)
         outline = new THREE.Line(@outline_geometry, @line_material)
         outline.renderOrder = 1
@@ -37,6 +56,12 @@ class EX.Mesh_Basic extends THREE.Mesh
                 debugger
 
             mesh.material.color = params.color;
+
+        if params.scale
+            output.scale.copy(params.scale.clone())
+
+        if params.position
+            output.position.copy(params.position.clone())
 
         output.setFillColor = (c) ->
             @children[0].material.color = c

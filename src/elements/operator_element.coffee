@@ -13,8 +13,14 @@ class BSS.Operator_Element extends BSS.Element
 
         super(new BSS.Operator_Model())
 
+        @_path = null
+        @_percentage = null
+
         # Default configuration.
         @buildFromConfiguration()
+
+    setFunction: (func) ->
+        @getModel().setFunction(func)
 
     ### Representation building from path mathmatics. ###
     buildFromConfiguration: () ->
@@ -29,6 +35,7 @@ class BSS.Operator_Element extends BSS.Element
         container.addVisual(operator_visual)
 
         number = EX.Visual_Factory.new_label("1")
+        number.position.x = -1
         container.addVisual(number)
 
         # Brake down character visual into body and legs.
@@ -37,12 +44,20 @@ class BSS.Operator_Element extends BSS.Element
     # Reposition's this operator's representation based on its model.
     # Uses model's location, orientation, and percentage.
     reposition: () ->
-        [loc, up] = @getModel().getCurrentLocationAndHeading()
+        [loc, up] = @getCurrentLocationAndHeading()
 
         visual = @getVisualRepresentation()
         visual.setPosition(loc)
         visual.setUpDirection(up) # Rotate within the view plane.
         return
+
+    # Provides this operator with a pointer to a path element that it is attached to, if any.
+    setPath: (path, percentage) ->
+        @_path = path
+        @_percentage = percentage
+
+    getCurrentLocationAndHeading: () ->
+        return @_path.getLocation(@_percentage)
 
     # Constructs location and orientation from current representation.
     getRepresentationLocationAndHeading: () ->
@@ -57,5 +72,3 @@ class BSS.Operator_Element extends BSS.Element
         return [loc, tan]
 
     ### Element Interface. ###
-
-    

@@ -10,3 +10,9 @@ class BSS.Operator_Model extends BSS.Model
         @_mutation_function = null
 
     buildModel: () ->
+
+    setFunction: (func) ->
+        @_mutation_function = func
+
+    getFunction: () ->
+        return @_mutation_function

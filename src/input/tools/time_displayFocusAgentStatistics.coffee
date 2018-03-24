@@ -26,7 +26,7 @@ class EX.TimeTool_DisplayFocusAgentStatistics extends EX.I_Tool_Controller
         # Apply update to narrative box.
         if statistics.narrativeChanged()
             textbox = ui_elements.textbox
-            textbox.str = EX.style.resource_name_food + statistics.getNarrative() # standardized label comes from style.
+            textbox.str = statistics.getNarrative() # standardized label comes from style.
             ui.updateLabel(textbox, {update_str:true})
 
 
