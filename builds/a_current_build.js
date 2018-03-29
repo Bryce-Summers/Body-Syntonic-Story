@@ -2249,7 +2249,7 @@ Purpose: creates a named set of story generators from the given text file.
       console.log(text);
       text = text.replace("\t", " ");
       lines = text.split("\n");
-      removeEOL = true;
+      removeEOL = false;
       for (j = 0, len1 = lines.length; j < len1; j++) {
         line = lines[j];
         if (line[0] === "the" && line[1] === "end") {
