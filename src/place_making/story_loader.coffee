@@ -52,7 +52,7 @@ class BSS.Story_Loader
         # Break into lines.
         lines = text.split("\n")
 
-        removeEOL = true
+        removeEOL = false
         for line in lines
             if line[0] == "the" and line[1] == "end"
                 removeEOL = false
