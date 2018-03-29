@@ -22,7 +22,7 @@ class EX.TimeTool_CameraFollowsAgent extends EX.I_Tool_Controller
         return if camera_model == null
 
         # Given an agent, I want to access the path element cooresponding to the given model.
-        [target_loc, target_up] = agent_model.getCurrentLocationAndHeading()  
+        [target_loc, target_up] = agent_model.getCurrentLocationAndHeading()
 
         # Using the camera model, interpolate the properties of the THREE.Camera object.
         camera_model.setCenter(target_loc)
@@ -32,7 +32,7 @@ class EX.TimeTool_CameraFollowsAgent extends EX.I_Tool_Controller
         # Inversly moves the scene such that a standard origin aligned camera perceives it as such.
         # This allows us to keep the User interface at a standard easy to use location, we don't have to worry about moving it, 
         # and we still only need 1 camera.
-        camera_model.applyInverseToObj(@scene.getView(), @camera)
+        camera_model.applyInverseToObj(@scene.getPivot(), @scene.getView(), @camera)
 
 
 

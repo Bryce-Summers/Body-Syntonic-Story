@@ -1,0 +1,76 @@
+story birth
+    birth protagonist baby // Baby begins its journey.
+    up 100 // Path of normalized length 100.
+    narrate 1 you are born into this world. // Events go on the preceding path
+    food 50
+    narrate 51 you are given food.
+
+    join right adult // Creates a joined parrallel adult story.
+    up 100
+    food 50
+    narrate 51 your mother gives you food.
+
+    join left adult
+    up 100
+    food 50
+    narrate 51 your father gives you food.
+
+    up 100
+    narrate 10 you have many experiences with your parents.
+    experience 20
+    experience 30
+    experience 40
+    experience 50
+    experience 60
+    now tell birth_first_cry // Now tell switches to the telling of another story.
+    the end
+
+// The short story of how the baby learned how to express itself with crying.
+story birth_first_cry
+    arc right 360 // Degrees. Turn radius is default.
+    food 160 //
+    conflict 180  //
+    narrate 200 Some food you don't like.
+    tell birth_second_cry
+    the end
+
+story birth_second_cry
+    arc right 90
+    narrate "Press Space to cry"
+    if think now tell birth_more_1 // Greyed out possibility, becomes more visible when user thinks.
+    arc right 270
+    conflict 90  //
+    narrate 200 Without self-advocacy you are continually oppressed.
+    now tell birth_second_cry
+    the end
+
+story birth_more_1
+    up 100
+    narrate  10 Crying allows for choice
+    experience 50
+    arc right 90
+    if think now tell birth_more_2
+    arc right 270
+    conflict 90
+    now tell birth_more_1
+    the end
+
+story birth_more_2
+    up 100
+    narrate  10 which leads to the notion of possibilities.
+    experience 50
+    arc right 90
+    if think now tell birth_ending
+    arc right 270
+    conflict 90
+    now tell birth_more_2
+    the end
+
+story birth_ending
+    up 100
+    conflict 50
+    narrate  75 Sometimes the outcome remains.
+    up 200
+    narrate 50 You grow older and exploration begins.
+    narrate 180 But also barriers.
+    the end // Should go into toddler segment.

@@ -1,5 +1,14 @@
 story MVP
-  up 3
-  think The body is an accumulation of food.
-  food 6
-the end // The story ends.
+  up 100
+  birth protagonist adult
+  narrate 1 The body is an accumulation of food.
+  food 10
+  food 20
+  food 30
+  food 40
+  food 50
+  food 60
+  food 70
+  food 80
+  food 90
+the end
