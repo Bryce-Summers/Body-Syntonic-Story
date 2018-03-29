@@ -10,6 +10,8 @@ class BSS.Story_Loader
 
     constructor: (@place) ->
 
+
+
     # void. Asynchrounously loads stories to the place after text file has loaded.
     load_story: (file_name) ->
         ###
@@ -50,6 +52,11 @@ class BSS.Story_Loader
         # Break into lines.
         lines = text.split("\n")
 
+        removeEOL = true
+        for line in lines
+            if line[0] == "the" and line[1] == "end"
+                removeEOL = false
+
         # Log where the story tokens are.
         block_start_indices = []
         block_end_indices   = []
@@ -59,7 +66,7 @@ class BSS.Story_Loader
             line = @filter(line, "")
 
             # Remove dangerous end of line ghost characters.
-            if i < lines.length - 1
+            if removeEOL and i < lines.length - 1
                 line = @removeEOL(line)
 
             if line[0] == "story"
