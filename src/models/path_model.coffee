@@ -77,6 +77,22 @@ class BSS.Path_Model extends BSS.Model
     setTransversalLength: (length) ->
         @_distance = length
 
+    # The model that this path point's to.
+    # FIXME: conforms to some sort of graph theoretic interface.
+    # Path or conditional.
+    setDestination : (model) ->
+        @destination = model
+
+    # FIXME:
+    getDestination : (agent_model) ->
+
+        # Return the relevant path after a conditional.
+        if @destination instanceof BSS.Condition_Model
+            return @destination.getDestination(agent_model)
+
+        # Return next path if a single path is coming up.
+        return @destination
+
     getTransversalLength: () ->
         return @_distance
 
@@ -92,7 +108,13 @@ class BSS.Path_Model extends BSS.Model
 
         # Enqueues this agent along this path.
         agent_model.setNextAgent(@last_agent)
+        agent_model.getElement().reposition()
         @last_agent = agent_model
+
+    # Not actually necessary,
+    # because linked list can contain broken links that are no longer on path.
+    dequeueAgent: (agent_model) ->
+
 
     # returns the next {operator:, percentage:} object or null if none exists.
     getNextOperatorIndex: (percentage) ->

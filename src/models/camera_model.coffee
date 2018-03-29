@@ -66,12 +66,26 @@ class BSS.Camera_Model extends BSS.Model
 
     # Applies this camera model inversly to the given THREE.Object3D with regards to the given camera.
     # all values are inverted.
-    applyInverseToObj: (obj, camera) ->
-        pos_old = obj.position
-        obj.position.x = (1.0 - @interpolationFactor)*pos_old.x + @interpolationFactor*(camera.position.x - @center.x)
-        obj.position.y = (1.0 - @interpolationFactor)*pos_old.y + @interpolationFactor*(camera.position.y + @center.y) # + because camera is inverted in y?
+    # In other words, the camera remains stationary and the world layer object moves as to simulate that the camera is at the given location.
+    applyInverseToObj: (pivot, view, camera) ->
+        pos_old = view.position
 
-        current_angle = obj.rotation.z
+        # view : center --> 0,0
+        # pivot: 0, 0, -> camera position, and rotation.
+        # Pivot is the parent of view.
+
+        view.position.x = (1.0 - @interpolationFactor)*pos_old.x + @interpolationFactor*(-@center.x)
+        view.position.y = (1.0 - @interpolationFactor)*pos_old.y + @interpolationFactor*(-@center.y) # + because camera is inverted in y?
+
+        pivot.position.x = camera.position.x
+        pivot.position.y = camera.position.y
+
+        ###
+        obj.position.x = 600
+        obj.position.y = 600
+        ###
+
+        current_angle = pivot.rotation.z
         angle = (camera.rotation.z - @angle)
 
         # Normmalize the target angle to something close that we can shoot for
@@ -82,4 +96,4 @@ class BSS.Camera_Model extends BSS.Model
             angle += Math.PI*2
 
         # Rotate within the xy plane on screen.
-        obj.rotation.z = (1.0 - @interpolationFactor)*obj.rotation.z + @interpolationFactor*angle
+        pivot.rotation.z = (1.0 - @interpolationFactor)*pivot.rotation.z + @interpolationFactor*angle

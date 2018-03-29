@@ -7,17 +7,42 @@ class EX.Keyboard_ControlPlayer extends EX.I_Tool_Controller
     # Input: THREE.js Scene.
     # THREE.js
     constructor: (@scene, @camera) ->
-        @up_pressed = false
+        @up_pressed    = false
+        @left_pressed  = false
+        @right_pressed = false
+        @down_pressed  = false
 
     key_down:(event) ->
 
+        console.log(event.key)
+
         # Tell the player agent to set its speed such that it is moving forwards.
+
+        # Do we tell the agent what do, or rather what command the user has expressed?
+
         if not @up_pressed and event.key == "ArrowUp"
             agent = @scene.getFocusAgent()
             agent_model = agent.getModel()
-            agent_model.setSpeed(1)
+            agent_model.setKey("psychology", "up")
+
+        if not @left_pressed and event.key == "ArrowLeft"
+            agent = @scene.getFocusAgent()
+            agent_model = agent.getModel()
+            agent_model.setKey("psychology", "left")
+
+        if not @right_pressed and event.key == "ArrowRight"
+            agent = @scene.getFocusAgent()
+            agent_model = agent.getModel()
+            agent_model.setKey("psychology", "right")
+
+        if not @down_pressed and event.key == "ArrowDown"
+            agent = @scene.getFocusAgent()
+            agent_model = agent.getModel()
+            agent_model.setKey("psychology", "down")
 
     key_up: (event)  ->
+        if event.key == "ArrowUp"
+            up_pressed = false
 
     # Key pressed events should be handled in time with if checks.
     time: (dt) ->

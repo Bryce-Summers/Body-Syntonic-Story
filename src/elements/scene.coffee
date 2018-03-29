@@ -24,9 +24,12 @@ class BSS.Scene
         @overlays = new THREE.Object3D()
         @overlays.position.z = 1.0 # Display overlays over top of all other layers. the overlays will be a non moving HUD.
         @overlays.name = "Overlays."
+        
+        @pivot = new THREE.Object3D() # Used so that the view can be rotated around an arbitrary center of rotation.
+        @pivot.add(@view)
 
         @root_visual.add(@overlays)
-        @root_visual.add(@view)
+        @root_visual.add(@pivot)
       
 
         # Define the overall fields used in the game.
@@ -44,8 +47,13 @@ class BSS.Scene
     getVisualRepresentation: () ->
         return @root_visual
 
+    # Translates center of view to origin.
     getView: () ->
         return @view
+
+    # Rotates view around origin, then translates it to camera.
+    getPivot: () ->
+        return @pivot
 
     # Instantiates a complete model of the game state.
     init: () ->

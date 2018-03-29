@@ -18,9 +18,20 @@ class BSS.Agent_Model extends BSS.Model
         @active = null
 
         # A mapping of variable names to values.
-        @state = null
+        @state = {}
         #state['key'] = val.
+        #psychology --> "up, left, right, down." # Characters only think about one thing at a time.
+        #speed_multiple --> 0, negative or positive number scaling the default speed.
+        #
+        @speed = 60 # 1 pixel per second.
 
+        # Controls forwards, stopped, backwards movement and multiples.
+        # 1, 0, -1, x2,3,4...
+        @speed_multiple = 1
+        @age = "adult"
+        @protagonist = false
+
+        # Larger processes.
         @statistics = null
 
         @navigation = null
@@ -34,11 +45,7 @@ class BSS.Agent_Model extends BSS.Model
 
         @buildModel()
 
-        @speed = 20 # 1 pixel per second.
 
-        # Controls forwards, stopped, backwards movement and multiples.
-        # 1, 0, -1, x2,3,4...
-        @speed_multiple = 0
 
     buildModel: () ->
 
@@ -73,22 +80,40 @@ class BSS.Agent_Model extends BSS.Model
         # Otherwise we just return the current information stored in the element's visual representation.
         return @getElement().getRepresentationLocationAndHeading()
 
+    # FIXME: If the agent overshoots, whose responsibility is it for the transition?
+    # The agent model or the path model?
     moveAlongPath: (dt, percentages_per_meter) ->
 
-        # Agents operate in meters (pixel) space, but also in percentage space along paths.
-        dPercentage = dt*@speed*@speed_multiple*percentages_per_meter # s * (m/s) * (%/m)
+        psychology = @state["psychology"]
+        dPercentage = 0
+
+        # Only move along path if the character is currently thinking about going in a direction.
+        if psychology == "up" or psychology == "left" or psychology == "right" # or psychology == "down"
+            # Agents operate in meters (pixel) space, but also in percentage space along paths.
+            dPercentage = dt*@speed*@speed_multiple*percentages_per_meter # s * (m/s) * (%/m)
+        else
+            return
         
         @percentage += dPercentage
 
         # FIXME: Agent should move on to next path if it gets here.
         if @percentage > 1.0
-            @percentage = 1.0
+            path_model = @navigation.getCurrentLocation()
+            next_path = path_model.getDestination(@)
+            if next_path != null # FIXME: Handle Junctions.
+                path_model.dequeueAgent(@)
+                next_path.enqueueAgent(@)
+                @navigation.setCurrentLocation(next_path)
+                @percentage = 0.0
+            else
+                @percentage = 1.0
 
         # Navigation operates in percentage space.
         #@navigation.move(dPercentage)
 
         # repositions representation on screen.
         @getElement().reposition()
+        return
 
 
     #update: (dt) ->        
@@ -132,3 +157,14 @@ class BSS.Agent_Model extends BSS.Model
     # Given an integer, sets this agent's speed multiple.
     setSpeed: (speed) ->
         @speed_multiple = speed
+
+    # "infant", "toddler", "adult"    true/false.
+    setCharacterType: (age, protagonist) ->
+        @age = age
+        if protagonist
+            @protagonist = true
+        else
+            @protagonist = false
+
+    isProtagonist: () ->
+        return @protagonist

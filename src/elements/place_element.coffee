@@ -5,9 +5,9 @@
 
 class BSS.Place_Element extends BSS.Element
 
-    constructor: (model) -> # Why do we pass a model?
+    constructor: (@scene) -> #scene is useful.
 
-        super(model)
+        super(new BSS.Place_Model)
 
         @init()
 
@@ -31,10 +31,11 @@ class BSS.Place_Element extends BSS.Element
         @_visual_paths      = new THREE.Object3D()
         @_visual_operators  = new THREE.Object3D()
         @_visual_conditions = new THREE.Object3D()
-        @_visual_agents = new THREE.Object3D()
+        @_visual_agents     = new THREE.Object3D()
 
         # An agent's visual representation can be realized within a place right?
 
+        @_story_map = null
         
 
     # Sets the visual representation of this place.
@@ -71,6 +72,9 @@ class BSS.Place_Element extends BSS.Element
         @_conditions.forEach (element) =>
             levels[3].add(element.getVisualRepresentation())
         ###
+
+    getScene: () ->
+        return @scene
 
     # Add and remove elements from this place element.
     addPlace:     (element) ->
@@ -121,6 +125,70 @@ class BSS.Place_Element extends BSS.Element
     removeOperator:  (element) ->
         @_operators.delete(element)
         @_visual_operators.remove(element.getVisualRepresentation().getVisual())
+
+    # Sets the storymap for this place,
+    # which is used to generate elements and agents.
+    setStoryMap: (map) ->
+        @_story_map = map
+
+        # Delete other elements?
+
+        # Initialize start of story.
+        name = "start"
+
+        @loadStoryBlock(name, null, new BDS.Point(200, 0), new BDS.Point(1, 0))
+        return
+
+    loadStoryBlock: (storyName, last_path, position, up_direction) ->
+
+        storyGenerator = @_story_map[storyName]
+
+        # Generate Elements.
+        elements = storyGenerator.generateElements(last_path, position, up_direction)
+
+        # Store the list, so they can be deleted when necessary.
+        # I guess I can store the list in the deletion operator events.
+
+        # Add the elements to this place.
+        for elem in elements
+            if elem instanceof BSS.Path_Element
+                @addPath(elem)
+            else if elem instanceof BSS.Place_Element
+                @addPlace(elem)
+            else if elem instanceof BSS.Junction_Element
+                @addJunction(elem)
+            else if elem instanceof BSS.Condition_Element
+                @addCondition(elem)
+            else if elem instanceof BSS.Agent_Element
+                @addAgent(elem)
+                # Set Element as focus if it is the protagonist.
+                agent_model = elem.getModel()
+                if agent_model.isProtagonist()
+                    @scene.setFocusAgent(elem)
+                    @scene.setFocusPlace(@)
+            else if elem instanceof BSS.Operator_Element
+                @addOperator(elem)
+
+                # Set load or destroy functions for marked operators
+                operator = elem
+                model = operator.getModel()
+                if model.getType() == "story_load"
+
+                    story_name = model.getState("story_name")
+                    last_path  = model.getState("path")
+                    [position, up] = last_path.getLocation(1.0)
+                    place = @
+
+                    func = (story_name, pathy, position, up) -> ((agent_model) ->
+                        place.loadStoryBlock(story_name, pathy, position, up)
+                        )
+
+                    model.setFunction(func(story_name, last_path, position, up))
+
+            # FIXME: Add the rest of the types.
+        return
+
+
 
 
     ### Inputs ###

@@ -5,11 +5,17 @@ This is a test place, it initializes the MVP story to test functionality, before
 class BSS.Test_Place extends BSS.Place_Element
 
     # Builds a test place.
-    constructor: (@scene) ->
+    constructor: (scene) ->
 
-        super(new BSS.Place_Model())
+        super(scene)
 
-        @init_place()
+        # Asynchrounously load the story back into this place element.
+        storyLoader = new BSS.Story_Loader(@)
+        #story_map = storyLoader.load_story('assets/stories/00_mvp.txt')
+        #story_map = storyLoader.load_story('assets/stories/001_curve.txt')
+        story_map = storyLoader.load_story('assets/stories/002_conditional.txt')
+
+        #@init_place()
         @init_scene_ui()
 
     init_place: () ->
