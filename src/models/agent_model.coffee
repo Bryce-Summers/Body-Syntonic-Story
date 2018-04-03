@@ -6,6 +6,9 @@
     Objects are responsible for determining when statistics ought to be logged,
     when plans should be created, and for following the rules.
 
+    Objects do not actively update themselves, 
+    but rather they passively receive updates from classes such as paths that manage their behavior.
+
     IDEA: Look up behavior trees.
 ###
 
@@ -21,6 +24,7 @@ class BSS.Agent_Model extends BSS.Model
         @state = {}
         #state['key'] = val.
         #psychology --> "up, left, right, down." # Characters only think about one thing at a time.
+        #   "follow" indicates that the agent should not actively move itself, but should be synchronized with a companion.
         #speed_multiple --> 0, negative or positive number scaling the default speed.
         #
         @speed = 60 # 1 pixel per second.
@@ -39,7 +43,14 @@ class BSS.Agent_Model extends BSS.Model
         # The percentage of the current model that has been transversed.
         @percentage = 0
 
+        # The agent ahead of this one on the path.
         @next_agent = null
+
+        # Companions follow this agent along adjacent lanes.
+        # The adjacent lanes should be indicated inside this agent's path model.
+        # companions will have psychologies set to "follow"
+        @companion_left = null
+        @companion_right = null
 
         @representation = null
 
@@ -80,8 +91,9 @@ class BSS.Agent_Model extends BSS.Model
         # Otherwise we just return the current information stored in the element's visual representation.
         return @getElement().getRepresentationLocationAndHeading()
 
-    # FIXME: If the agent overshoots, whose responsibility is it for the transition?
-    # The agent model or the path model?
+    # Moves this agent along the path, the path is responsible for propogating changes to companions.
+    # Does the path perform legality checks or does the agent perform legality checks?
+    # Returns true iff the agent has moved beyond its path. Responsibility for path switching will be given to the path.
     moveAlongPath: (dt, percentages_per_meter) ->
 
         psychology = @state["psychology"]
@@ -100,6 +112,10 @@ class BSS.Agent_Model extends BSS.Model
         if @percentage > 1.0
             path_model = @navigation.getCurrentLocation()
             next_path = path_model.getDestination(@)
+
+            # Reverts to up psychology after conditional choice.
+            if path_model.endsAtConditional()
+                @state["psychology"] = "up"
             if next_path != null # FIXME: Handle Junctions.
                 path_model.dequeueAgent(@)
                 next_path.enqueueAgent(@)
@@ -115,10 +131,13 @@ class BSS.Agent_Model extends BSS.Model
         @getElement().reposition()
         return
 
-
-    #update: (dt) ->        
+    # Not guranteed to be safe or maintain distance from next agent.
+    setPercentage: (per) ->
+        @percentage = per
+        @getElement().reposition()
 
     # Have the scene pass update commands to this object model.
+    # FIXME: Do these currently have any effects.
     activate: () ->
         @scene.activateObject(@)
         @active = true
@@ -136,11 +155,51 @@ class BSS.Agent_Model extends BSS.Model
 
     # The agent that this agent is following.
     # Various checks can be performed based on our memory of that agent.
+    # responsibility for utilizing this pointer is externalized to classes such as the path model.
     getNextAgent: (agent) ->
         return @next_agent
 
     setNextAgent: (agent) ->
         @next_agent = agent
+        return
+
+    # agent_model or null.
+    # Set and get pointers to the companions of this agent.
+    # There may be a chain of companions if the left companion also has a left companion and so on.
+    # The responsibility of maintaining non looping behavior is externalize to the classes that use this link.
+    setLeftCompanion: (agent) ->
+        @companion_left = agent
+        return
+
+    setRightCompanion: (agent) ->
+        @companion_right = agent
+        return
+
+    getLeftCompanion: () ->
+        return @companion_left
+
+    getRightCompanion: () ->
+        return @companion_right
+
+    # Creates and returns a list of all companions.
+    getAllCompanions: () ->
+        left  = @companion_left
+        right = @companion_right
+
+        out = []
+
+        # Output all left companions.
+        # ASSUMPTION: left and right chains do not create loops.
+        while left != null
+            out.push(left)
+            left = left.getLeftCompanion()
+
+        while right != null
+            out.push(right)
+            right = right.getRightCompanion()
+
+        return out
+
 
     # returns model of current location.
     getCurrentLocationModel: () ->

@@ -9,7 +9,7 @@ Purpose: creates a named set of story generators from the given text file.
 class BSS.Story_Loader
 
     constructor: (@place) ->
-
+        @shouldRemoveEOL = false
 
 
     # void. Asynchrounously loads stories to the place after text file has loaded.
@@ -52,11 +52,6 @@ class BSS.Story_Loader
         # Break into lines.
         lines = text.split("\n")
 
-        removeEOL = false
-        for line in lines
-            if line[0] == "the" and line[1] == "end"
-                removeEOL = false
-
         # Log where the story tokens are.
         block_start_indices = []
         block_end_indices   = []
@@ -66,7 +61,7 @@ class BSS.Story_Loader
             line = @filter(line, "")
 
             # Remove dangerous end of line ghost characters.
-            if removeEOL and i < lines.length - 1
+            if @shouldRemoveEOL and i < lines.length - 1
                 line = @removeEOL(line)
 
             if line[0] == "story"
@@ -78,7 +73,11 @@ class BSS.Story_Loader
 
             lines[i] = line # Put the line back after tokenization.
 
+        # Try again while removing erroneous extra characters.
         if block_start_indices.length != block_end_indices.length
+            @shouldRemoveEOL = true
+            @createStories(text)
+            return
             throw new Error("Syntax error in start and ends of blocks.")
 
         # Create Story generators from story blocks.
@@ -103,6 +102,7 @@ class BSS.Story_Loader
                 map.start = storyGenerator
 
         @place.setStoryMap(map)
+        return
         
 
     filter: (array, item) ->

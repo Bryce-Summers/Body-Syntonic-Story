@@ -13,7 +13,8 @@ class BSS.Test_Place extends BSS.Place_Element
         storyLoader = new BSS.Story_Loader(@)
         #story_map = storyLoader.load_story('assets/stories/00_mvp.txt')
         #story_map = storyLoader.load_story('assets/stories/001_curve.txt')
-        story_map = storyLoader.load_story('assets/stories/002_conditional.txt')
+        #story_map = storyLoader.load_story('assets/stories/002_conditional.txt')
+        story_map = storyLoader.load_story('assets/stories/004_friends.txt')
 
         #@init_place()
         @init_scene_ui()

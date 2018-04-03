@@ -29,6 +29,12 @@ class BSS.Agent_Element extends BSS.Element
         character_visual = EX.Visual_Factory.newPoint(loc, EX.style.c_car_fill, EX.style.radius_agent_default)
         container.addVisual(character_visual)
 
+        pivot = EX.Visual_Factory.newSprite("/assets/images/up_arrow.png", {x:-10, y:-10, w:20, h:10})
+        @arrow = new THREE.Object3D()
+        @arrow.add(pivot)
+        @arrow.position.z += .001
+        container.addVisual(@arrow)
+
         # Brake down character visual into body and legs.
         return
 
@@ -40,6 +46,17 @@ class BSS.Agent_Element extends BSS.Element
         visual = @getVisualRepresentation()
         visual.setPosition(loc)
         visual.setUpDirection(up) # Rotate within the view plane.
+
+        # Interpolate to the different psychological states.
+        # FIXME: This should be mapped to time, rather than repositioning.
+        psy = @getModel().lookupKey("psychology")
+        if psy == "left"
+            @arrow.rotation.z = -Math.PI/2 * .1 + .9*@arrow.rotation.z
+        if psy == "right"
+            @arrow.rotation.z = Math.PI/2 * .1 + .9*@arrow.rotation.z
+        if psy == "up"
+            @arrow.rotation.z = 0 * .1 + .9*@arrow.rotation.z
+
         return
 
     # Constructs location and orientation from current representation.

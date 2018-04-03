@@ -1,5 +1,5 @@
 /*! Sim Urban, a project by Bryce Summers.
- *  Single File concatenated by Grunt Concatenate on 29-03-2018
+ *  Single File concatenated by Grunt Concatenate on 03-04-2018
  */
 // All of the boiler plate, example project stuff should be out of a namespace.
 // all of the procedural elements unique to a project should be within this projects' specific namespace.
@@ -118,21 +118,41 @@ BSS = {};
     /* Representation building from path mathmatics. */
 
     Agent_Element.prototype.buildFromConfiguration = function() {
-      var character_visual, container, loc, model, ref, up;
+      var character_visual, container, loc, model, pivot, ref, up;
       container = this.getVisualRepresentation();
       container.clearVisuals();
       model = this.getModel();
       ref = model.getCurrentLocationAndHeading(), loc = ref[0], up = ref[1];
       character_visual = EX.Visual_Factory.newPoint(loc, EX.style.c_car_fill, EX.style.radius_agent_default);
       container.addVisual(character_visual);
+      pivot = EX.Visual_Factory.newSprite("/assets/images/up_arrow.png", {
+        x: -10,
+        y: -10,
+        w: 20,
+        h: 10
+      });
+      this.arrow = new THREE.Object3D();
+      this.arrow.add(pivot);
+      this.arrow.position.z += .001;
+      container.addVisual(this.arrow);
     };
 
     Agent_Element.prototype.reposition = function() {
-      var loc, ref, up, visual;
+      var loc, psy, ref, up, visual;
       ref = this.getModel().getCurrentLocationAndHeading(), loc = ref[0], up = ref[1];
       visual = this.getVisualRepresentation();
       visual.setPosition(loc);
       visual.setUpDirection(up);
+      psy = this.getModel().lookupKey("psychology");
+      if (psy === "left") {
+        this.arrow.rotation.z = -Math.PI / 2 * .1 + .9 * this.arrow.rotation.z;
+      }
+      if (psy === "right") {
+        this.arrow.rotation.z = Math.PI / 2 * .1 + .9 * this.arrow.rotation.z;
+      }
+      if (psy === "up") {
+        this.arrow.rotation.z = 0 * .1 + .9 * this.arrow.rotation.z;
+      }
     };
 
     Agent_Element.prototype.getRepresentationLocationAndHeading = function() {
@@ -281,6 +301,7 @@ BSS = {};
       this.getModel().setTransversalLength(this.partial_distances[this.partial_distances.length - 1]);
       this.tangent_angles = this.mid_line.computeTangentAngles();
       this.tangent_angles.push(this.tangent_angles[this.tangent_angles.length - 1]);
+      this.path_radius = EX.style.radius_path_default;
       this.buildFromConfiguration();
     }
 
@@ -291,7 +312,7 @@ BSS = {};
       var container, path_visual;
       container = this._visualRep;
       container.clearVisuals();
-      path_visual = EX.Visual_Factory.newPath(this.mid_line, EX.style.radius_path_default, EX.style.c_road_fill, true);
+      path_visual = EX.Visual_Factory.newPath(this.mid_line, this.path_radius, EX.style.c_road_fill, true);
       container.addVisual(path_visual);
     };
 
@@ -300,6 +321,9 @@ BSS = {};
 
     Path_Element.prototype.getLocation = function(percentage) {
       var ang0, ang1, highest_le_index, i0, i1, len, location, partial_distance, pd0, pd1, per, pt0, pt1, tangent, tangent_angle, tx, ty;
+      if (percentage === void 0) {
+        throw new Error("percentage undefined");
+      }
       partial_distance = percentage * this.getModel().getTransversalLength();
       highest_le_index = BDS.Arrays.binarySearch(this.partial_distances, partial_distance, function(a, b) {
         return a <= b;
@@ -338,6 +362,10 @@ BSS = {};
       path_model.addOperator(operator_model, percentage);
       operator.setPath(this, percentage);
       return operator.reposition();
+    };
+
+    Path_Element.prototype.getCrossSectionRadius = function() {
+      return this.path_radius;
     };
 
 
@@ -1248,6 +1276,9 @@ Notes:
     Objects are responsible for determining when statistics ought to be logged,
     when plans should be created, and for following the rules.
 
+    Objects do not actively update themselves, 
+    but rather they passively receive updates from classes such as paths that manage their behavior.
+
     IDEA: Look up behavior trees.
  */
 
@@ -1270,6 +1301,8 @@ Notes:
       this.navigation = null;
       this.percentage = 0;
       this.next_agent = null;
+      this.companion_left = null;
+      this.companion_right = null;
       this.representation = null;
       this.buildModel();
     }
@@ -1317,6 +1350,9 @@ Notes:
       if (this.percentage > 1.0) {
         path_model = this.navigation.getCurrentLocation();
         next_path = path_model.getDestination(this);
+        if (path_model.endsAtConditional()) {
+          this.state["psychology"] = "up";
+        }
         if (next_path !== null) {
           path_model.dequeueAgent(this);
           next_path.enqueueAgent(this);
@@ -1327,6 +1363,11 @@ Notes:
         }
       }
       this.getElement().reposition();
+    };
+
+    Agent_Model.prototype.setPercentage = function(per) {
+      this.percentage = per;
+      return this.getElement().reposition();
     };
 
     Agent_Model.prototype.activate = function() {
@@ -1352,7 +1393,39 @@ Notes:
     };
 
     Agent_Model.prototype.setNextAgent = function(agent) {
-      return this.next_agent = agent;
+      this.next_agent = agent;
+    };
+
+    Agent_Model.prototype.setLeftCompanion = function(agent) {
+      this.companion_left = agent;
+    };
+
+    Agent_Model.prototype.setRightCompanion = function(agent) {
+      this.companion_right = agent;
+    };
+
+    Agent_Model.prototype.getLeftCompanion = function() {
+      return this.companion_left;
+    };
+
+    Agent_Model.prototype.getRightCompanion = function() {
+      return this.companion_right;
+    };
+
+    Agent_Model.prototype.getAllCompanions = function() {
+      var left, out, right;
+      left = this.companion_left;
+      right = this.companion_right;
+      out = [];
+      while (left !== null) {
+        out.push(left);
+        left = left.getLeftCompanion();
+      }
+      while (right !== null) {
+        out.push(right);
+        right = right.getRightCompanion();
+      }
+      return out;
     };
 
     Agent_Model.prototype.getCurrentLocationModel = function() {
@@ -1709,23 +1782,37 @@ Notes:
       this._distance = 1;
       this.destination = null;
       this.last_agent = null;
+      this.lane_left = null;
+      this.lane_right = null;
       this.operators = [];
     }
 
     Path_Model.prototype.moveAgents = function(dt) {
-      var agent, oper, oper_index, per_end, per_operator, per_start, percentages_per_meter;
+      var agent, c, companions, j, k, len, len1, oper, oper_index, per_end, per_operator, per_start, percentages_per_meter;
       agent = this.last_agent;
       percentages_per_meter = 1.0 / this._distance;
       while (agent !== null && agent.getNavigation().getCurrentLocation() === this) {
+        if (agent.lookupKey("psychology") === "follow") {
+          continue;
+        }
         per_start = agent.getPercentage();
         agent.moveAlongPath(dt, percentages_per_meter);
+        per_end = agent.getPercentage();
+        companions = agent.getAllCompanions();
+        for (j = 0, len = companions.length; j < len; j++) {
+          c = companions[j];
+          c.setPercentage(per_end);
+        }
         oper_index = this.getNextOperatorIndex(per_start);
         if (oper_index !== null) {
           oper = this.operators[oper_index];
           per_operator = oper.percentage;
-          per_end = agent.getPercentage();
           while (oper_index < this.operators.length && oper.percentage <= per_end) {
             agent.operate(oper.operator);
+            for (k = 0, len1 = companions.length; k < len1; k++) {
+              c = companions[k];
+              c.operate(oper.operator);
+            }
             oper_index += 1;
             oper = this.operators[oper_index];
           }
@@ -1751,10 +1838,14 @@ Notes:
     };
 
     Path_Model.prototype.getDestination = function(agent_model) {
-      if (this.destination instanceof BSS.Condition_Model) {
+      if (this.endsAtConditional()) {
         return this.destination.getDestination(agent_model);
       }
       return this.destination;
+    };
+
+    Path_Model.prototype.endsAtConditional = function() {
+      return this.destination instanceof BSS.Condition_Model;
     };
 
     Path_Model.prototype.getTransversalLength = function() {
@@ -1809,6 +1900,86 @@ Notes:
         new_opers.push(this.operators[i]);
       }
       this.operators = new_opers;
+    };
+
+    Path_Model.prototype.setLeftLane = function(path) {
+      if (this.lane_left !== null) {
+        this.lane_left.lane_right = null;
+      }
+      this.lane_left = path;
+      if (path !== null) {
+        this.lane_left.lane_right = this;
+      }
+    };
+
+    Path_Model.prototype.setRightLane = function(path) {
+      if (this.lane_right !== null) {
+        this.lane_right.lane_left = null;
+      }
+      this.lane_right = path;
+      if (path !== null) {
+        return this.lane_right.lane_left = this;
+      }
+    };
+
+    Path_Model.prototype.getLeftLane = function() {
+      return this.lane_left;
+    };
+
+    Path_Model.prototype.getRightLane = function() {
+      return this.lane_right;
+    };
+
+    Path_Model.prototype.getAllLanes = function() {
+      var out;
+      out = this.getAllOtherLanes();
+      out.push(this);
+      return out;
+    };
+
+    Path_Model.prototype.getFarLeftLane = function() {
+      var out;
+      out = this;
+      while (out.getLeftLane() !== null) {
+        out = out.getLeftLane();
+      }
+      return out;
+    };
+
+    Path_Model.prototype.getFarRightLane = function() {
+      var out;
+      out = this;
+      while (out.getRightLane() !== null) {
+        out = out.getRightLane();
+      }
+      return out;
+    };
+
+    Path_Model.prototype.getAllOtherLanes = function() {
+      var left, out, right;
+      left = this.lane_left;
+      right = this.lane_right;
+      out = [];
+      while (left !== null) {
+        out.push(left);
+        left = left.getLeftLane();
+      }
+      while (right !== null) {
+        out.push(right);
+        right = right.getRightLane();
+      }
+      return out;
+    };
+
+    Path_Model.prototype.getAllLanes = function() {
+      var lane, out;
+      out = [];
+      lane = this.getFarLeftLane();
+      while (lane !== null) {
+        out.push(lane);
+        lane = lane.getRightLane();
+      }
+      return out;
     };
 
     return Path_Model;
@@ -1987,6 +2158,8 @@ Allows for new story block elements to be instantiated. Generates instances, but
       state.output = [];
       state.forked_state = null;
       state.conditional_function = null;
+      state.character = null;
+      state.index = 0;
       return state;
     };
 
@@ -2000,6 +2173,9 @@ Allows for new story block elements to be instantiated. Generates instances, but
       out.output = state_in.output;
       out.forked_state = state_in.forked_state;
       out.conditional_function = state_in.conditional_function;
+      out.index = state_in.index;
+      out.character = null;
+      out.character_location = state_in.character_location;
       return out;
     };
 
@@ -2021,42 +2197,64 @@ Allows for new story block elements to be instantiated. Generates instances, but
      */
 
     Story_Generator.prototype.generateElements = function(last_path, position, up_direction) {
-      var forked_state, i, j, ref, rotation_angle, state, token_list;
+      var forked_state, i, j, k, ref, ref1, rotation_angle, state, state_index, states, token_list;
       rotation_angle = Math.atan2(up_direction.y, up_direction.x);
       state = this.newState(last_path, position, rotation_angle);
+      states = [state];
       for (i = j = 0, ref = this.tokens.length; 0 <= ref ? j < ref : j > ref; i = 0 <= ref ? ++j : --j) {
         token_list = this.tokens[i];
-        state.token_list = token_list;
-        state.type = token_list[0];
-        if (state.type === "up") {
-          this.generatePath(state);
+        if (token_list[0] === "introduce") {
+          this.generateAgent(token_list, states);
+          continue;
         }
-        if (state.type === "arc") {
-          this.generatePath(state);
-        }
-        if (state.type === "birth") {
-          this.generateAgent(state);
-        }
-        if (state.type === "narrate") {
-          this.generateNarration(state);
-        }
-        if (state.type === "food") {
-          this.generateOperator(state);
-        }
-        if (state.type === "fork") {
-          if (state.forked_state === null) {
-            this.generateConditional(state);
-            state.forked_state = this.copyState(state);
-          } else {
-            forked_state = state.forked_state;
-            state = this.copyState(forked_state);
-            state.forked_state = forked_state;
+        for (state_index = k = 0, ref1 = states.length; 0 <= ref1 ? k < ref1 : k > ref1; state_index = 0 <= ref1 ? ++k : --k) {
+          state = states[state_index];
+          state.token_list = token_list;
+          state.type = token_list[0];
+          if (state.type === "up" || state.type === "arc") {
+            this.generatePath(state);
           }
-          state.conditional_function = this.generateAgentConditionalFunction(token_list.slice(1));
+
+          /*
+          if state.type == "introduce"
+              @generateAgent(state)
+           */
+          if (state.type === "narrate") {
+            this.generateNarration(state);
+          }
+          if (state.type === "food") {
+            this.generateOperator(state);
+          }
+          if (state.type === "fork") {
+            if (state.forked_state === null) {
+              this.generateConditional(state);
+              state.forked_state = this.copyState(state);
+            } else {
+              forked_state = state.forked_state;
+              state = this.copyState(forked_state);
+              state.forked_state = forked_state;
+              states[state_index] = state;
+            }
+            state.conditional_function = this.generateAgentConditionalFunction(token_list.slice(1));
+          }
+          if (state.type === "tell") {
+            this.generateTellOperator(state);
+          }
         }
-        if (state.type === "tell") {
-          this.generateTellOperator(state);
-        }
+
+        /*
+        @update
+        
+        @linkPathsAndAddCharacters
+        for i in [0...states.length - 1]
+            state1 = states[i]
+            state2 = states[i + 1]
+            path_model1 = state1.path.getModel()
+            path_model2 = state2.path.getModel()
+        
+             * Bidirectional link!
+            path_model1.setRightLane(path_model2)
+         */
       }
       return state.output;
     };
@@ -2073,8 +2271,8 @@ Allows for new story block elements to be instantiated. Generates instances, but
         pt1 = pt0.add(dir.multScalar(length));
         path_pline = new BDS.Polyline(false, [pt0, pt1]);
         path_element = new BSS.Path_Element(path_pline);
-        state.output.push(path_element);
         state.position = pt1;
+        state.output.push(path_element);
       } else if (state.type === "arc") {
         factor = 1;
         if (state.token_list[1] === "right") {
@@ -2102,6 +2300,9 @@ Allows for new story block elements to be instantiated. Generates instances, but
         state.position = pts[pts.length - 1];
         state.rotation_angle -= radians_turned;
       }
+      if (state.character !== null) {
+        path_element.addAgent(state.character);
+      }
       if (state.conditional_function) {
         conditional = state.path;
         func = state.conditional_function;
@@ -2113,17 +2314,52 @@ Allows for new story block elements to be instantiated. Generates instances, but
       state.path = path_element;
     };
 
-    Story_Generator.prototype.generateAgent = function(state) {
-      var agent, agent_model, path;
-      if (state.token_list[1] === "protagonist") {
-        agent = new BSS.Agent_Element();
-        agent_model = agent.getModel();
-        agent_model.setCharacterType(state.token_list[2], true);
-        state.output.push(agent);
-        path = state.path;
-        path.addAgent(agent);
+    Story_Generator.prototype.generateAgent = function(token_list, states) {
+      var agent, agent_model, focus_agent, j, len1, s, state, token_index;
+      token_index = 1;
+      if (token_list[token_index] === "left") {
+        state = this.constructLeftState(states[0]);
+        states = [state].concat(states);
+        token_index += 1;
+      } else if (token_list[token_index] === "right") {
+        state = this.constructLeftState(states[states.length - 1]);
+        states.push(state);
+        token_index += 1;
+      } else {
+        for (j = 0, len1 = states.length; j < len1; j++) {
+          s = states[j];
+          if (s.index === 0) {
+            state = s;
+            break;
+          }
+        }
       }
+      focus_agent = false;
+      if (token_list[token_index] === "protagonist") {
+        focus_agent = true;
+        token_index += 1;
+      }
+      agent = new BSS.Agent_Element();
+      agent_model = agent.getModel();
+      agent_model.setCharacterType(token_list[token_index], focus_agent);
+      state.output.push(agent);
+      state.character = agent;
     };
+
+    Story_Generator.prototype.constructLeftState = function(state) {
+      var lane_pos, left, loc, offset, out, path, ref, up;
+      path = state.path;
+      ref = path.getLocation(1.0), loc = ref[0], up = ref[1];
+      left = new BDS.Point(-up.y, up.x);
+      offset = path.getCrossSectionRadius();
+      lane_pos = loc.add(left.multScalar());
+      out = this.newState(null, lane_pos, state.rotation_angle);
+      out.index = state.index - 1;
+      out.output = state.output;
+      return out;
+    };
+
+    Story_Generator.prototype.constructRightState = function(state) {};
 
     Story_Generator.prototype.generateNarration = function(state) {
       var i, j, message, normalized_dist, operator, percentage, ref, str;
@@ -2208,6 +2444,7 @@ Purpose: creates a named set of story generators from the given text file.
   BSS.Story_Loader = (function() {
     function Story_Loader(place) {
       this.place = place;
+      this.shouldRemoveEOL = false;
     }
 
     Story_Loader.prototype.load_story = function(file_name) {
@@ -2245,24 +2482,17 @@ Purpose: creates a named set of story generators from the given text file.
      */
 
     Story_Loader.prototype.createStories = function(text) {
-      var block_end_indices, block_lines, block_start_indices, i, index, index_end, index_start, j, k, l, len1, line, lines, m, map, name, ref, ref1, ref2, ref3, removeEOL, start_name, storyGenerator;
+      var block_end_indices, block_lines, block_start_indices, i, index, index_end, index_start, j, k, l, line, lines, map, name, ref, ref1, ref2, ref3, start_name, storyGenerator;
       console.log(text);
       text = text.replace("\t", " ");
       lines = text.split("\n");
-      removeEOL = false;
-      for (j = 0, len1 = lines.length; j < len1; j++) {
-        line = lines[j];
-        if (line[0] === "the" && line[1] === "end") {
-          removeEOL = false;
-        }
-      }
       block_start_indices = [];
       block_end_indices = [];
-      for (i = k = 0, ref = lines.length; 0 <= ref ? k < ref : k > ref; i = 0 <= ref ? ++k : --k) {
+      for (i = j = 0, ref = lines.length; 0 <= ref ? j < ref : j > ref; i = 0 <= ref ? ++j : --j) {
         line = lines[i];
         line = line.split(" ");
         line = this.filter(line, "");
-        if (removeEOL && i < lines.length - 1) {
+        if (this.shouldRemoveEOL && i < lines.length - 1) {
           line = this.removeEOL(line);
         }
         if (line[0] === "story") {
@@ -2274,15 +2504,18 @@ Purpose: creates a named set of story generators from the given text file.
         lines[i] = line;
       }
       if (block_start_indices.length !== block_end_indices.length) {
+        this.shouldRemoveEOL = true;
+        this.createStories(text);
+        return;
         throw new Error("Syntax error in start and ends of blocks.");
       }
       map = {};
       start_name = name = lines[0][1];
-      for (i = l = 0, ref1 = block_start_indices.length; l < ref1; i = l += 1) {
+      for (i = k = 0, ref1 = block_start_indices.length; k < ref1; i = k += 1) {
         index_start = block_start_indices[i];
         index_end = block_end_indices[i];
         block_lines = [];
-        for (index = m = ref2 = index_start, ref3 = index_end; m <= ref3; index = m += 1) {
+        for (index = l = ref2 = index_start, ref3 = index_end; l <= ref3; index = l += 1) {
           line = lines[index];
           block_lines.push(line);
         }
@@ -2293,7 +2526,7 @@ Purpose: creates a named set of story generators from the given text file.
           map.start = storyGenerator;
         }
       }
-      return this.place.setStoryMap(map);
+      this.place.setStoryMap(map);
     };
 
     Story_Loader.prototype.filter = function(array, item) {
@@ -2347,7 +2580,7 @@ This is a test place, it initializes the MVP story to test functionality, before
       var storyLoader, story_map;
       Test_Place.__super__.constructor.call(this, scene);
       storyLoader = new BSS.Story_Loader(this);
-      story_map = storyLoader.load_story('assets/stories/002_conditional.txt');
+      story_map = storyLoader.load_story('assets/stories/004_friends.txt');
       this.init_scene_ui();
     }
 
@@ -2884,7 +3117,7 @@ Purpose: Creates THREE.js paths.
     Visual_Factory.newPoint = function(pt, color, radius) {
       var material, mesh, pos, scale;
       scale = new THREE.Vector3(radius, radius, 1);
-      pos = new THREE.Vector3(pt.x, pt.y, 1);
+      pos = new THREE.Vector3(pt.x, pt.y, 0);
       material = EX.style.m_flat_fill.clone();
       mesh = this.unit_meshes.newCircle({
         color: color,
@@ -2961,7 +3194,7 @@ Purpose: Creates THREE.js paths.
 
     Visual_Factory.newSprite = function(url, dim) {
       var container, geom, mat, mesh, texture;
-      texture = EX.Visual_Factory.loader.load(url);
+      texture = EX.Visual_Factory.textureLoader.load(url);
       geom = new THREE.PlaneBufferGeometry(dim.w, dim.h, 32);
       mat = new THREE.MeshBasicMaterial({
         color: 0xffffff,

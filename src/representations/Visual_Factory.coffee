@@ -104,7 +104,7 @@ class EX.Visual_Factory
     @newPoint: (pt, color, radius) ->
         scale = new THREE.Vector3(radius, radius, 1)
 
-        pos = new THREE.Vector3(pt.x, pt.y, 1)
+        pos = new THREE.Vector3(pt.x, pt.y, 0)
 
         material = EX.style.m_flat_fill.clone()
 
@@ -179,7 +179,7 @@ class EX.Visual_Factory
     # dim {x:, y: w:, h:}
     @newSprite = (url, dim) ->
         
-        texture = EX.Visual_Factory.loader.load(url)
+        texture = EX.Visual_Factory.textureLoader.load(url)
         geom = new THREE.PlaneBufferGeometry( dim.w, dim.h, 32 )
         mat  = new THREE.MeshBasicMaterial( {color: 0xffffff, side: THREE.DoubleSide, map:texture, transparent: true} )
         mesh = new THREE.Mesh( geom, mat )

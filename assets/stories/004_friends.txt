@@ -1,0 +1,6 @@
+story friends
+    introduce protagonist adult
+    up 10
+    introduce left adult
+    up 10
+the end

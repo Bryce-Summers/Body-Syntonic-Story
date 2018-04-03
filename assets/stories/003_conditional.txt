@@ -1,6 +1,6 @@
 story begginning
-    introduce protagonist adult
     up 10
+    birth protagonist adult
     tell branch
 the end
 
@@ -9,13 +9,29 @@ story branch
   fork psychology == left //the following instruction indicate what is to be done if character.state["psychology"] is left.
     arc left 90
     narrate 30 You chose to take the left path.
-    tell branch
+    tell branch2
   fork psychology == up
     up 20
     narrate 10 You chose to take the up path.
-    tell branch
+    tell branch2
   fork psychology == right
     arc right 90
     narrate 30 You chose to take the right path.
+    tell branch2
+the end
+
+story branch2
+    up 5
+    arc right 10
+    arc left 15
+    up 5
+  fork psychology == left //the following instruction indicate what is to be done if character.state["psychology"] is left.
+    arc left 70
+    narrate 30 You chose to take the left path.
+    tell branch
+  fork psychology == up
+    arc right 5 
+    up 10
+    narrate 10 You chose to take the up path.
     tell branch
 the end
