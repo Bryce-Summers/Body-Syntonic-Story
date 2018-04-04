@@ -52,6 +52,8 @@ class BSS.Agent_Model extends BSS.Model
         @companion_left = null
         @companion_right = null
 
+        @leader = null
+
         @representation = null
 
         @buildModel()
@@ -69,6 +71,8 @@ class BSS.Agent_Model extends BSS.Model
         @percentage = 0
         @state = {}
         @active = false
+
+        @state["psychology"] = "stopped"
 
     getNavigation: () ->
         return @navigation
@@ -93,7 +97,8 @@ class BSS.Agent_Model extends BSS.Model
 
     # Moves this agent along the path, the path is responsible for propogating changes to companions.
     # Does the path perform legality checks or does the agent perform legality checks?
-    # Returns true iff the agent has moved beyond its path. Responsibility for path switching will be given to the path.
+    # Responsibility for path switching will be given to the path.
+    # Especially since the agent might have moved past operators while going to the end of the path.
     moveAlongPath: (dt, percentages_per_meter) ->
 
         psychology = @state["psychology"]
@@ -104,31 +109,15 @@ class BSS.Agent_Model extends BSS.Model
             # Agents operate in meters (pixel) space, but also in percentage space along paths.
             dPercentage = dt*@speed*@speed_multiple*percentages_per_meter # s * (m/s) * (%/m)
         else
-            return
+            return # no movement --> stayed on path.
         
         @percentage += dPercentage
 
-        # FIXME: Agent should move on to next path if it gets here.
-        if @percentage > 1.0
-            path_model = @navigation.getCurrentLocation()
-            next_path = path_model.getDestination(@)
-
-            # Reverts to up psychology after conditional choice.
-            if path_model.endsAtConditional()
-                @state["psychology"] = "up"
-            if next_path != null # FIXME: Handle Junctions.
-                path_model.dequeueAgent(@)
-                next_path.enqueueAgent(@)
-                @navigation.setCurrentLocation(next_path)
-                @percentage = 0.0
-            else
-                @percentage = 1.0
-
-        # Navigation operates in percentage space.
-        #@navigation.move(dPercentage)
-
         # repositions representation on screen.
         @getElement().reposition()
+
+        # Returns true if percentage exceeds percentage path bounds.
+        # Caller should handle this.
         return
 
     # Not guranteed to be safe or maintain distance from next agent.
@@ -169,10 +158,14 @@ class BSS.Agent_Model extends BSS.Model
     # The responsibility of maintaining non looping behavior is externalize to the classes that use this link.
     setLeftCompanion: (agent) ->
         @companion_left = agent
+        agent.leader = @
+        agent.setKey("psychology", "follow")
         return
 
     setRightCompanion: (agent) ->
         @companion_right = agent
+        agent.leader = @
+        agent.setKey("psychology", "follow")
         return
 
     getLeftCompanion: () ->

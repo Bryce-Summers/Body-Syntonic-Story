@@ -9,7 +9,7 @@ The content cooresponds to story NAME blocks in a story file.
 Allows for new story block elements to be instantiated. Generates instances, but leaves management to other 
 
 # FIXME: Change last_path to last_element. (Path, conditional)
-
+# FIXME: Revert to old state list on fork return, because who knows what has happened.
 ###
 
 class BSS.Story_Generator
@@ -56,7 +56,6 @@ class BSS.Story_Generator
         # 'middle' --> Add character to mainline path.
         # 'left'   --> Add character to a newly generated left lane.
         # 'right'  --> Add character to a newly generated right lane.
-        out.character_location = state_in.character_location
         return out
 
 
@@ -91,7 +90,9 @@ class BSS.Story_Generator
 
             # Character Introductions.
             if token_list[0] == "introduce"
-                @generateAgent(token_list, states)
+                debugger
+                states = @generateAgent(token_list, states)
+
                 continue
 
             # Perform the sequential operations for all of the parrallel states.
@@ -126,6 +127,7 @@ class BSS.Story_Generator
                         state = @copyState(forked_state)
                         state.forked_state = forked_state
                         states[state_index] = state # Set back to array.
+
 
                     # ASSUMPTION: state is now at the root of the fork.
 
@@ -191,7 +193,7 @@ class BSS.Story_Generator
             dy = Math.sin(state.rotation_angle - factor*Math.PI/2)
 
             # 1.0 / curvature of path.
-            radius_of_path = EX.style.path_curvature_inverse
+            radius_of_path = EX.style.path_curvature_inverse + factor*EX.style.radius_path_default*state.index
 
             # Center position.
             cx = state.position.x + dx*radius_of_path
@@ -221,6 +223,7 @@ class BSS.Story_Generator
         # New character gets put upon path.
         if state.character != null
             path_element.addAgent(state.character) # Add the agent to the last path.
+            state.character = null # Don't add this character again.
 
         # Connect the path_element to the previous element.
 
@@ -242,16 +245,44 @@ class BSS.Story_Generator
 
         token_index = 1
 
-        # Optional left/right designation.
-        # Create a new state or extract an old state.
+        # Instantiate the Agent model.
+        agent = new BSS.Agent_Element()
+        agent_model = agent.getModel()
+
+        # Determine an old or new state lane that this agent will be added to at the start of the next path.
         if token_list[token_index] == "left"
+
+            token_index += 1
+            
+            # Determine the behavior of the character.
+            if token_list[token_index] == "companion" # Have the left most character pick up this agent as a companion.
+                token_index += 1
+                state = states[0]
+                func = (a) -> (agent_model) -> (
+                            agent_model.setLeftCompanion(a)
+                        )
+                # Adds operator to 100% end of path.
+                @addOperatorToPath(func(agent_model), state.normalized_path_length, state)
+
             state = @constructLeftState(states[0])
             states = [state].concat(states)
-            token_index += 1
+            
         else if token_list[token_index] == "right"
-            state = @constructLeftState(states[states.length - 1])
-            states.push(state)
+
             token_index += 1
+
+            # Determine the behavior of the character.
+            if token_list[token_index] == "companion" # Have the left most character pick up this agent as a companion.
+                token_index += 1
+                state = states[states.length - 1]
+                func = (a) -> (agent_model) -> (
+                            agent_model.setRightCompanion(a)
+                        )
+                # Adds operator to 100% end of path.
+                @addOperatorToPath(func(agent_model), state.normalized_path_length, state)
+
+            state = @constructRightState(states[states.length - 1])
+            states.push(state)
         else
             # Character added to an existing path.
             for s in states
@@ -269,35 +300,46 @@ class BSS.Story_Generator
             focus_agent = true
             token_index += 1
 
-        # Create an agent that will be placed on the next generated path.
-        agent = new BSS.Agent_Element()
-        agent_model = agent.getModel()
+        # Configure the agent model.
         agent_model.setCharacterType(token_list[token_index], focus_agent)
 
         # Global output push.
         state.output.push(agent)
         state.character = agent
-        return
+        return states
 
-    # FIXME: should we copy the state instead? How does forking work in the presence of branching states?
-    # Do we revert to the old state list?
+
+    constructRightState: (state) ->
+        path = state.path
+
+        [loc, up] = path.getLocation(1.0)
+
+        # (1, 0) --> (0, 1)
+        right = new BDS.Point(-up.y, up.x)
+
+        offset = path.getCrossSectionRadius()
+        lane_pos = loc.add(right.multScalar(offset))
+
+        out = @newState(null, lane_pos, state.rotation_angle)
+        out.index = state.index + 1
+        out.output = state.output
+        return out
+
     constructLeftState: (state) ->
         path = state.path
 
         [loc, up] = path.getLocation(1.0)
 
         # (1, 0) --> (0, 1)
-        left = new BDS.Point(-up.y, up.x)
+        left = new BDS.Point(up.y, -up.x)
 
         offset = path.getCrossSectionRadius()
-        lane_pos = loc.add(left.multScalar())
+        lane_pos = loc.add(left.multScalar(offset))
 
         out = @newState(null, lane_pos, state.rotation_angle)
         out.index = state.index - 1
         out.output = state.output
         return out
-
-    constructRightState: (state) ->
 
 
     # FIXME: Abstract the operator generation functionality.
@@ -305,7 +347,6 @@ class BSS.Story_Generator
 
         # Compute percentage of operator location.
         normalized_dist = state.token_list[1]
-        percentage = normalized_dist / state.normalized_path_length
 
         # Rejoin narrative sentance from tokens.
         message = ""
@@ -314,31 +355,36 @@ class BSS.Story_Generator
             message = message + " " + str
 
         console.log(message)
+        func = (agent_model) -> agent_model.statistics.setNarrative(message)
+        @addOperatorToPath(func, normalized_dist, state)
 
-        operator = new BSS.Operator_Element()
-        operator.setFunction((agent_model) ->
-            agent_model.statistics.setNarrative(message)
-            )
-
-        state.path.addOperator(operator, percentage)
-        state.output.push(operator)
         return
 
     generateOperator: (state) ->
 
         # Compute percentage of operator location.
         normalized_dist = state.token_list[1]
-        percentage = normalized_dist / state.normalized_path_length
-
+        
+        # determine operator function.
         if state.token_list[0] == "food"
-            operator = new BSS.Operator_Element()
-            operator.setFunction((agent_model) ->
+
+            func = (agent_model) -> (
                 food = agent_model.statistics.getFood()
                 agent_model.statistics.setFood(food + 1)
                 )
 
-            state.path.addOperator(operator, percentage)
-            state.output.push(operator)
+        @addOperatorToPath(func, normalized_dist, state)
+            
+        return
+
+    # Creates an operator, adds it to the given path, adds it to the output.
+    addOperatorToPath: (func, normalized_distance, state) ->
+        percentage = normalized_distance / state.normalized_path_length
+
+        operator = new BSS.Operator_Element()
+        operator.setFunction(func)
+        state.path.addOperator(operator, percentage)
+        state.output.push(operator)
         return
 
     # Generates a load operator for new story.
@@ -370,4 +416,10 @@ class BSS.Story_Generator
         return (agent_model) ->
             val1 = agent_model.lookupKey(token_list[0])
             val2 = token_list[2]
+
+            # Branch according to leader.
+            while val1 == "follow"
+                agent_model = agent_model.leader
+                val1 = agent_model.lookupKey(token_list[0])
+
             return val1 == val2

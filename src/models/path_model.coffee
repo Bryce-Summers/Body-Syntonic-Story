@@ -37,6 +37,7 @@ class BSS.Path_Model extends BSS.Model
         # {operator:, percentage:}
         @operators = []
 
+    # FIXME: Decompose this into sub functions.
     moveAgents: (dt) ->
 
         # Iterate through all agents and move them.
@@ -51,6 +52,7 @@ class BSS.Path_Model extends BSS.Model
             # Don't actively move an agent if it is set to follow a leader companion.
             # This also prevents abundant over updates.
             if agent.lookupKey("psychology") == "follow"
+                agent = agent.getNextAgent()
                 continue
 
             # remember the percentage that the agent starts at.
@@ -65,24 +67,62 @@ class BSS.Path_Model extends BSS.Model
             for c in companions
                 c.setPercentage(per_end)
 
-            # Now check to see if the agent has moved past an operator event.
-            # If so, proccess all operators.
-            oper_index = @getNextOperatorIndex(per_start) # {operator:, percentage:}
-            if oper_index != null
-                oper = @operators[oper_index]
-                per_operator = oper.percentage
+            # Process operators for all agents.
+            companions.push(agent)
+            for c in companions
 
-                # If we've moved past an operation, then perform all operations between its start and end percentage.
-                while oper_index < @operators.length and oper.percentage <= per_end
-                    agent.operate(oper.operator)
+                # Path model cooresponding to the agent.
+                lane = c.getNavigation().getCurrentLocation()
 
-                    # Operate on all companions.
-                    for c in companions
-                        c.operate(oper.operator)
+                # Now check to see if the agent has moved past an operator event.
+                # If so, proccess all operators.
 
-                    oper_index += 1
-                    # Next oper.
-                    oper = @operators[oper_index]
+                oper_index = lane.getNextOperatorIndex(per_start) # {operator:, percentage:}
+                if oper_index != null
+                    oper = lane.operators[oper_index]
+                    per_operator = oper.percentage
+
+                    # If we've moved past an operation, then perform all operations between its start and end percentage.
+                    while oper_index < lane.operators.length and oper.percentage <= per_end
+                        agent.operate(oper.operator)
+
+                        # Operate on all companions.
+                        for c in companions
+                            c.operate(oper.operator)
+
+                        oper_index += 1
+                        # Next oper.
+                        oper = lane.operators[oper_index]
+
+            # Transion every companion to the next paths.
+            if per_end > 1.0
+
+                for agent in companions
+
+                    # If agent moved beyond limit, move it to the next path.
+                    navigation = agent.getNavigation()
+                    path_model = navigation.getCurrentLocation()
+                    next_path  = path_model.getDestination(agent)
+
+                    # Reverts to up psychology after conditional choice.
+                    if path_model.endsAtConditional()
+                        if agent.lookupKey("psychology") != "follow"
+                            agent.setKey("psychology", "up")
+                    if next_path != null # FIXME: Handle Junctions.
+                        path_model.dequeueAgent(agent)
+                        next_path.enqueueAgent(agent)
+                        navigation.setCurrentLocation(next_path)
+
+                        ###
+                        Ideally we should move the agent through without a hitch, activating all operators along the way,
+                        includng the ones on the next path.
+                        dist = (per_end - 1.0) / percentages_per_meter
+                        per = dist / next_path.length...
+                        ###
+
+                        agent.setPercentage(0.0)
+                    else
+                        agent.setPercentage(1.0)
 
 
             agent = agent.getNextAgent()
@@ -242,6 +282,7 @@ class BSS.Path_Model extends BSS.Model
 
         return out
 
+    # Returns all lanes in order from left to right.
     getAllLanes: () ->
 
         out = []

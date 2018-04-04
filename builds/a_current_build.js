@@ -1,5 +1,5 @@
 /*! Sim Urban, a project by Bryce Summers.
- *  Single File concatenated by Grunt Concatenate on 03-04-2018
+ *  Single File concatenated by Grunt Concatenate on 04-04-2018
  */
 // All of the boiler plate, example project stuff should be out of a namespace.
 // all of the procedural elements unique to a project should be within this projects' specific namespace.
@@ -1303,6 +1303,7 @@ Notes:
       this.next_agent = null;
       this.companion_left = null;
       this.companion_right = null;
+      this.leader = null;
       this.representation = null;
       this.buildModel();
     }
@@ -1312,7 +1313,8 @@ Notes:
       this.navigation = new BSS.Navigation_Model();
       this.percentage = 0;
       this.state = {};
-      return this.active = false;
+      this.active = false;
+      return this.state["psychology"] = "stopped";
     };
 
     Agent_Model.prototype.getNavigation = function() {
@@ -1338,7 +1340,7 @@ Notes:
     };
 
     Agent_Model.prototype.moveAlongPath = function(dt, percentages_per_meter) {
-      var dPercentage, next_path, path_model, psychology;
+      var dPercentage, psychology;
       psychology = this.state["psychology"];
       dPercentage = 0;
       if (psychology === "up" || psychology === "left" || psychology === "right") {
@@ -1347,21 +1349,6 @@ Notes:
         return;
       }
       this.percentage += dPercentage;
-      if (this.percentage > 1.0) {
-        path_model = this.navigation.getCurrentLocation();
-        next_path = path_model.getDestination(this);
-        if (path_model.endsAtConditional()) {
-          this.state["psychology"] = "up";
-        }
-        if (next_path !== null) {
-          path_model.dequeueAgent(this);
-          next_path.enqueueAgent(this);
-          this.navigation.setCurrentLocation(next_path);
-          this.percentage = 0.0;
-        } else {
-          this.percentage = 1.0;
-        }
-      }
       this.getElement().reposition();
     };
 
@@ -1398,10 +1385,14 @@ Notes:
 
     Agent_Model.prototype.setLeftCompanion = function(agent) {
       this.companion_left = agent;
+      agent.leader = this;
+      agent.setKey("psychology", "follow");
     };
 
     Agent_Model.prototype.setRightCompanion = function(agent) {
       this.companion_right = agent;
+      agent.leader = this;
+      agent.setKey("psychology", "follow");
     };
 
     Agent_Model.prototype.getLeftCompanion = function() {
@@ -1788,11 +1779,12 @@ Notes:
     }
 
     Path_Model.prototype.moveAgents = function(dt) {
-      var agent, c, companions, j, k, len, len1, oper, oper_index, per_end, per_operator, per_start, percentages_per_meter;
+      var agent, c, companions, j, k, l, lane, len, len1, len2, len3, m, navigation, next_path, oper, oper_index, path_model, per_end, per_operator, per_start, percentages_per_meter;
       agent = this.last_agent;
       percentages_per_meter = 1.0 / this._distance;
       while (agent !== null && agent.getNavigation().getCurrentLocation() === this) {
         if (agent.lookupKey("psychology") === "follow") {
+          agent = agent.getNextAgent();
           continue;
         }
         per_start = agent.getPercentage();
@@ -1803,18 +1795,51 @@ Notes:
           c = companions[j];
           c.setPercentage(per_end);
         }
-        oper_index = this.getNextOperatorIndex(per_start);
-        if (oper_index !== null) {
-          oper = this.operators[oper_index];
-          per_operator = oper.percentage;
-          while (oper_index < this.operators.length && oper.percentage <= per_end) {
-            agent.operate(oper.operator);
-            for (k = 0, len1 = companions.length; k < len1; k++) {
-              c = companions[k];
-              c.operate(oper.operator);
+        companions.push(agent);
+        for (k = 0, len1 = companions.length; k < len1; k++) {
+          c = companions[k];
+          lane = c.getNavigation().getCurrentLocation();
+          oper_index = lane.getNextOperatorIndex(per_start);
+          if (oper_index !== null) {
+            oper = lane.operators[oper_index];
+            per_operator = oper.percentage;
+            while (oper_index < lane.operators.length && oper.percentage <= per_end) {
+              agent.operate(oper.operator);
+              for (l = 0, len2 = companions.length; l < len2; l++) {
+                c = companions[l];
+                c.operate(oper.operator);
+              }
+              oper_index += 1;
+              oper = lane.operators[oper_index];
             }
-            oper_index += 1;
-            oper = this.operators[oper_index];
+          }
+        }
+        if (per_end > 1.0) {
+          for (m = 0, len3 = companions.length; m < len3; m++) {
+            agent = companions[m];
+            navigation = agent.getNavigation();
+            path_model = navigation.getCurrentLocation();
+            next_path = path_model.getDestination(agent);
+            if (path_model.endsAtConditional()) {
+              if (agent.lookupKey("psychology") !== "follow") {
+                agent.setKey("psychology", "up");
+              }
+            }
+            if (next_path !== null) {
+              path_model.dequeueAgent(agent);
+              next_path.enqueueAgent(agent);
+              navigation.setCurrentLocation(next_path);
+
+              /*
+              Ideally we should move the agent through without a hitch, activating all operators along the way,
+              includng the ones on the next path.
+              dist = (per_end - 1.0) / percentages_per_meter
+              per = dist / next_path.length...
+               */
+              agent.setPercentage(0.0);
+            } else {
+              agent.setPercentage(1.0);
+            }
           }
         }
         agent = agent.getNextAgent();
@@ -2140,6 +2165,7 @@ The content cooresponds to story NAME blocks in a story file.
 Allows for new story block elements to be instantiated. Generates instances, but leaves management to other 
 
  * FIXME: Change last_path to last_element. (Path, conditional)
+ * FIXME: Revert to old state list on fork return, because who knows what has happened.
  */
 
 (function() {
@@ -2175,7 +2201,6 @@ Allows for new story block elements to be instantiated. Generates instances, but
       out.conditional_function = state_in.conditional_function;
       out.index = state_in.index;
       out.character = null;
-      out.character_location = state_in.character_location;
       return out;
     };
 
@@ -2204,7 +2229,8 @@ Allows for new story block elements to be instantiated. Generates instances, but
       for (i = j = 0, ref = this.tokens.length; 0 <= ref ? j < ref : j > ref; i = 0 <= ref ? ++j : --j) {
         token_list = this.tokens[i];
         if (token_list[0] === "introduce") {
-          this.generateAgent(token_list, states);
+          debugger;
+          states = this.generateAgent(token_list, states);
           continue;
         }
         for (state_index = k = 0, ref1 = states.length; 0 <= ref1 ? k < ref1 : k > ref1; state_index = 0 <= ref1 ? ++k : --k) {
@@ -2280,7 +2306,7 @@ Allows for new story block elements to be instantiated. Generates instances, but
         }
         dx = Math.cos(state.rotation_angle - factor * Math.PI / 2);
         dy = Math.sin(state.rotation_angle - factor * Math.PI / 2);
-        radius_of_path = EX.style.path_curvature_inverse;
+        radius_of_path = EX.style.path_curvature_inverse + factor * EX.style.radius_path_default * state.index;
         cx = state.position.x + dx * radius_of_path;
         cy = state.position.y + dy * radius_of_path;
         pts = [];
@@ -2302,6 +2328,7 @@ Allows for new story block elements to be instantiated. Generates instances, but
       }
       if (state.character !== null) {
         path_element.addAgent(state.character);
+        state.character = null;
       }
       if (state.conditional_function) {
         conditional = state.path;
@@ -2315,16 +2342,38 @@ Allows for new story block elements to be instantiated. Generates instances, but
     };
 
     Story_Generator.prototype.generateAgent = function(token_list, states) {
-      var agent, agent_model, focus_agent, j, len1, s, state, token_index;
+      var agent, agent_model, focus_agent, func, j, len1, s, state, token_index;
       token_index = 1;
+      agent = new BSS.Agent_Element();
+      agent_model = agent.getModel();
       if (token_list[token_index] === "left") {
+        token_index += 1;
+        if (token_list[token_index] === "companion") {
+          token_index += 1;
+          state = states[0];
+          func = function(a) {
+            return function(agent_model) {
+              return agent_model.setLeftCompanion(a);
+            };
+          };
+          this.addOperatorToPath(func(agent_model), state.normalized_path_length, state);
+        }
         state = this.constructLeftState(states[0]);
         states = [state].concat(states);
-        token_index += 1;
       } else if (token_list[token_index] === "right") {
-        state = this.constructLeftState(states[states.length - 1]);
-        states.push(state);
         token_index += 1;
+        if (token_list[token_index] === "companion") {
+          token_index += 1;
+          state = states[states.length - 1];
+          func = function(a) {
+            return function(agent_model) {
+              return agent_model.setRightCompanion(a);
+            };
+          };
+          this.addOperatorToPath(func(agent_model), state.normalized_path_length, state);
+        }
+        state = this.constructRightState(states[states.length - 1]);
+        states.push(state);
       } else {
         for (j = 0, len1 = states.length; j < len1; j++) {
           s = states[j];
@@ -2339,60 +2388,73 @@ Allows for new story block elements to be instantiated. Generates instances, but
         focus_agent = true;
         token_index += 1;
       }
-      agent = new BSS.Agent_Element();
-      agent_model = agent.getModel();
       agent_model.setCharacterType(token_list[token_index], focus_agent);
       state.output.push(agent);
       state.character = agent;
+      return states;
+    };
+
+    Story_Generator.prototype.constructRightState = function(state) {
+      var lane_pos, loc, offset, out, path, ref, right, up;
+      path = state.path;
+      ref = path.getLocation(1.0), loc = ref[0], up = ref[1];
+      right = new BDS.Point(-up.y, up.x);
+      offset = path.getCrossSectionRadius();
+      lane_pos = loc.add(right.multScalar(offset));
+      out = this.newState(null, lane_pos, state.rotation_angle);
+      out.index = state.index + 1;
+      out.output = state.output;
+      return out;
     };
 
     Story_Generator.prototype.constructLeftState = function(state) {
       var lane_pos, left, loc, offset, out, path, ref, up;
       path = state.path;
       ref = path.getLocation(1.0), loc = ref[0], up = ref[1];
-      left = new BDS.Point(-up.y, up.x);
+      left = new BDS.Point(up.y, -up.x);
       offset = path.getCrossSectionRadius();
-      lane_pos = loc.add(left.multScalar());
+      lane_pos = loc.add(left.multScalar(offset));
       out = this.newState(null, lane_pos, state.rotation_angle);
       out.index = state.index - 1;
       out.output = state.output;
       return out;
     };
 
-    Story_Generator.prototype.constructRightState = function(state) {};
-
     Story_Generator.prototype.generateNarration = function(state) {
-      var i, j, message, normalized_dist, operator, percentage, ref, str;
+      var func, i, j, message, normalized_dist, ref, str;
       normalized_dist = state.token_list[1];
-      percentage = normalized_dist / state.normalized_path_length;
       message = "";
       for (i = j = 2, ref = state.token_list.length; j < ref; i = j += 1) {
         str = state.token_list[i];
         message = message + " " + str;
       }
       console.log(message);
-      operator = new BSS.Operator_Element();
-      operator.setFunction(function(agent_model) {
+      func = function(agent_model) {
         return agent_model.statistics.setNarrative(message);
-      });
-      state.path.addOperator(operator, percentage);
-      state.output.push(operator);
+      };
+      this.addOperatorToPath(func, normalized_dist, state);
     };
 
     Story_Generator.prototype.generateOperator = function(state) {
-      var normalized_dist, operator, percentage;
+      var func, normalized_dist;
       normalized_dist = state.token_list[1];
-      percentage = normalized_dist / state.normalized_path_length;
       if (state.token_list[0] === "food") {
-        operator = new BSS.Operator_Element();
-        operator.setFunction(function(agent_model) {
+        func = function(agent_model) {
           var food;
           food = agent_model.statistics.getFood();
           return agent_model.statistics.setFood(food + 1);
-        });
-        state.path.addOperator(operator, percentage);
-        state.output.push(operator);
+        };
       }
+      this.addOperatorToPath(func, normalized_dist, state);
+    };
+
+    Story_Generator.prototype.addOperatorToPath = function(func, normalized_distance, state) {
+      var operator, percentage;
+      percentage = normalized_distance / state.normalized_path_length;
+      operator = new BSS.Operator_Element();
+      operator.setFunction(func);
+      state.path.addOperator(operator, percentage);
+      state.output.push(operator);
     };
 
     Story_Generator.prototype.generateTellOperator = function(state) {
@@ -2420,6 +2482,10 @@ Allows for new story block elements to be instantiated. Generates instances, but
         var val1, val2;
         val1 = agent_model.lookupKey(token_list[0]);
         val2 = token_list[2];
+        while (val1 === "follow") {
+          agent_model = agent_model.leader;
+          val1 = agent_model.lookupKey(token_list[0]);
+        }
         return val1 === val2;
       };
     };
@@ -2954,6 +3020,8 @@ Purpose: Creates THREE.js paths.
       radius_path_default: 50,
       radius_operator_default: 10,
       radius_agent_default: 20,
+      file_to_screen_distance_factor: 8,
+      path_curvature_inverse: 100,
       radius_road_local: 50,
       radius_road_collector: 75,
       radius_road_artery: 100,
@@ -2992,9 +3060,7 @@ Purpose: Creates THREE.js paths.
       highlight: new THREE.Color(0x0000ff),
       error: new THREE.Color(0xff0000),
       action: new THREE.Color(0x72E261),
-      c_normal: new THREE.Color(0xdddddd),
-      file_to_screen_distance_factor: 8,
-      path_curvature_inverse: 100
+      c_normal: new THREE.Color(0xdddddd)
     };
     EX.style.fontLoader = new THREE.FontLoader();
     return EX.style.fontLoader.load('assets/fonts/Raleway_Regular.typeface.json', function(font) {
