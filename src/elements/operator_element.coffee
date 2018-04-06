@@ -36,9 +36,7 @@ class BSS.Operator_Element extends BSS.Element
         size = EX.style.size_operator_icon
         dim = {x:-size/2, y:-size/2, w:size, h:size}
 
-        parent_directory = window.location.pathname;
-        parent_directory = parent_directory.substring(0, parent_directory.lastIndexOf('/'));
-        directory = parent_directory + "/assets/images/"
+        directory = "assets/images/"
 
         console.log(directory)
 

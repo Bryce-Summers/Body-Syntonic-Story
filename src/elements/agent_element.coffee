@@ -29,7 +29,7 @@ class BSS.Agent_Element extends BSS.Element
         character_visual = EX.Visual_Factory.newPoint(loc, EX.style.c_car_fill, EX.style.radius_agent_default)
         container.addVisual(character_visual)
 
-        pivot = EX.Visual_Factory.newSprite("/assets/images/up_arrow.png", {x:-10, y:-10, w:20, h:10})
+        pivot = EX.Visual_Factory.newSprite("assets/images/up_arrow.png", {x:-10, y:-10, w:20, h:10})
         @arrow = new THREE.Object3D()
         @arrow.add(pivot)
         @arrow.position.z += .001

@@ -178,6 +178,10 @@ class EX.Visual_Factory
 
     # dim {x:, y: w:, h:}
     @newSprite = (url, dim) ->
+
+        parent_directory = window.location.pathname;
+        parent_directory = parent_directory.substring(0, parent_directory.lastIndexOf('/'));
+        url = parent_directory + "/" + url
         
         texture = EX.Visual_Factory.textureLoader.load(url)
         geom = new THREE.PlaneBufferGeometry( dim.w, dim.h, 32 )
