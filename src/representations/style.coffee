@@ -16,6 +16,12 @@ EX.init_style = () ->
         radius_operator_default: 10,
         radius_agent_default: 20,
 
+        size_operator_icon: 40,
+
+        # converts 100 in story files to the length of the minnimum screen dimension.
+        file_to_screen_distance_factor: 8,
+        path_curvature_inverse: 100,
+
         radius_road_local:     50,
         radius_road_collector: 75,
         radius_road_artery:    100,
@@ -62,10 +68,6 @@ EX.init_style = () ->
         error:     new THREE.Color(0xff0000),
         action:    new THREE.Color(0x72E261),
         c_normal:  new THREE.Color(0xdddddd),
-
-        # converts 100 in story files to the length of the minnimum screen dimension.
-        file_to_screen_distance_factor: 8,
-        path_curvature_inverse: 100,
     }
 
     EX.style.fontLoader = new THREE.FontLoader();

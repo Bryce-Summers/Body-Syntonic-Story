@@ -1,0 +1,25 @@
+This is a description of the syntax for my body syntotic programming language.
+
+Key words:
+
+Characters:
+ - introduce // Creates a specific character at the beginning of the current path. Or creates an adjacent path to the left or right.
+   introduce [Optional: left/right] [Behavior: protagonist/companion adult[/child] 
+   (Specify character type. Think Bone.) protagonist signals that this should be the character that the camera now follows.
+
+   Introductions come before a path expression. The character will be placed on the path of on a neighhboring lane if left or right is specified.
+   IDEA: Allow for character data initialization.
+
+Paths:            
+ - up  
+ - arc
+
+Operators:
+ - narrate
+ - food
+
+Conditionals:
+ - fork
+
+story
+the end

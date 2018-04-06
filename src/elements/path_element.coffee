@@ -19,6 +19,8 @@ class BSS.Path_Element extends BSS.Element
         # Copy the last value. # FIXME: Think about the specifics of how we discretize the tangent metric.
         @tangent_angles.push(@tangent_angles[@tangent_angles.length - 1])
 
+        @path_radius = EX.style.radius_path_default
+
         @buildFromConfiguration()
 
     ### Representation building from path mathmatics. ###
@@ -28,7 +30,7 @@ class BSS.Path_Element extends BSS.Element
         # Remove all previous sub visual elements from the visual representation.
         container.clearVisuals()
 
-        path_visual = EX.Visual_Factory.newPath(@mid_line, EX.style.radius_path_default, EX.style.c_road_fill, true)
+        path_visual = EX.Visual_Factory.newPath(@mid_line, @path_radius, EX.style.c_road_fill, true)
         container.addVisual(path_visual)
         return
 
@@ -38,8 +40,12 @@ class BSS.Path_Element extends BSS.Element
 
     # Returns a BDS.Point representing the location a given percentage of the way along the path.
     # Also returns a tangent direction to specify the orientation of the object along the path.
-    # float -> [BDS.Point, BDS.Point]
+    # float -> [location : BDS.Point, tangent : BDS.Point]
     getLocation: (percentage) ->
+
+        if percentage == undefined
+            throw new Error("percentage undefined")
+
         partial_distance = percentage*@getModel().getTransversalLength()
         highest_le_index = BDS.Arrays.binarySearch(@partial_distances, partial_distance, (a, b) -> a <= b)
 
@@ -88,7 +94,11 @@ class BSS.Path_Element extends BSS.Element
         operator.setPath(@, percentage)
         operator.reposition()
 
+    getCrossSectionRadius: () ->
+        return @path_radius
+
     ### Inputs ###
     time: (dt) ->
-
         @getModel().moveAgents(dt)
+
+

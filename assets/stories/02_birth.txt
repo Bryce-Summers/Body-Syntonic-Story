@@ -1,16 +1,18 @@
 story birth
-    birth protagonist baby // Baby begins its journey.
+    introduce protagonist baby // Baby begins its journey.
     up 100 // Path of normalized length 100.
     narrate 1 you are born into this world. // Events go on the preceding path
     food 50
     narrate 51 you are given food.
 
-    join right adult // Creates a joined parrallel adult story.
+    // Perceive another.
+
+    introduce right adult // Creates a joined parrallel adult story.
     up 100
     food 50
     narrate 51 your mother gives you food.
 
-    join left adult
+    introduce left adult
     up 100
     food 50
     narrate 51 your father gives you food.
@@ -22,8 +24,8 @@ story birth
     experience 40
     experience 50
     experience 60
-    now tell birth_first_cry // Now tell switches to the telling of another story.
-    the end
+    tell birth_first_cry // Now tell switches to the telling of another story.
+the end
 
 // The short story of how the baby learned how to express itself with crying.
 story birth_first_cry

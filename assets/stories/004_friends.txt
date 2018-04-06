@@ -1,0 +1,55 @@
+story friends
+    introduce protagonist adult
+    up 100
+    narrate 50 You meet your mother.
+    introduce right companion adult
+    up 100
+    narrate 50 You meet you father.
+    introduce left companion adult
+    up 100
+    narrate 90 You make descisions together.
+    arc left 45
+    tell branch
+the end
+
+story branch
+  up 10
+  fork psychology == left //the following instruction indicate what is to be done if character.state["psychology"] is left.
+    arc left 45
+    narrate 30 You chose to take the left path.
+    up 20
+    tell branch2
+  fork psychology == up
+    up 40
+    narrate 10 You chose to take the up path.
+    tell branch3
+  fork psychology == right
+    arc right 45
+    narrate 30 You chose to take the right path.
+    up 20    
+    tell branch4
+the end
+
+story branch2
+    arc right 30
+    up 20
+    arc left 45
+    tell branch
+the end
+
+story branch3
+    arc right 10
+    up 10
+    arc right 5
+    arc left 80
+    up 20
+    tell branch
+the end
+
+story branch4
+    arc right 25
+    up 30
+    arc right 70
+    up 20
+    tell branch
+the end
