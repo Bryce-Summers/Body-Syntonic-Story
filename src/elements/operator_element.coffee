@@ -35,7 +35,7 @@ class BSS.Operator_Element extends BSS.Element
 
         size = EX.style.size_operator_icon
         dim = {x:-size/2, y:-size/2, w:size, h:size}
-        directory = "/assets/images/"
+        directory = "assets/images/"
         sprite = directory + "default_operator_icon.png" # Default.
 
         if type == "narrate"
