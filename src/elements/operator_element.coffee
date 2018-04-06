@@ -38,8 +38,6 @@ class BSS.Operator_Element extends BSS.Element
 
         directory = "assets/images/"
 
-        console.log(directory)
-
         sprite = directory + "default_operator_icon.png" # Default.
 
         if type == "narrate"
