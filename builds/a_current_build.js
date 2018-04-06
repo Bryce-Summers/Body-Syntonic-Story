@@ -253,6 +253,7 @@ BSS = {};
       parent_directory = window.location.pathname;
       parent_directory = parent_directory.substring(0, parent_directory.lastIndexOf('/'));
       directory = parent_directory + "/assets/images/";
+      console.log(directory);
       sprite = directory + "default_operator_icon.png";
       if (type === "narrate") {
         sprite = directory + "Narration.png";
