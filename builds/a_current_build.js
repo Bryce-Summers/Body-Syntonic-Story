@@ -125,7 +125,7 @@ BSS = {};
       ref = model.getCurrentLocationAndHeading(), loc = ref[0], up = ref[1];
       character_visual = EX.Visual_Factory.newPoint(loc, EX.style.c_car_fill, EX.style.radius_agent_default);
       container.addVisual(character_visual);
-      pivot = EX.Visual_Factory.newSprite("/assets/images/up_arrow.png", {
+      pivot = EX.Visual_Factory.newSprite("assets/images/up_arrow.png", {
         x: -10,
         y: -10,
         w: 20,
@@ -238,7 +238,7 @@ BSS = {};
     /* Representation building from path mathmatics. */
 
     Operator_Element.prototype.buildFromConfiguration = function() {
-      var container, dim, directory, model, operator_visual, parent_directory, size, sprite, type;
+      var container, dim, directory, model, operator_visual, size, sprite, type;
       container = this.getVisualRepresentation();
       container.clearVisuals();
       model = this.getModel();
@@ -250,10 +250,7 @@ BSS = {};
         w: size,
         h: size
       };
-      parent_directory = window.location.pathname;
-      parent_directory = parent_directory.substring(0, parent_directory.lastIndexOf('/'));
-      directory = parent_directory + "/assets/images/";
-      console.log(directory);
+      directory = "assets/images/";
       sprite = directory + "default_operator_icon.png";
       if (type === "narrate") {
         sprite = directory + "Narration.png";
@@ -3327,7 +3324,10 @@ Purpose: Creates THREE.js paths.
      */
 
     Visual_Factory.newSprite = function(url, dim) {
-      var container, geom, mat, mesh, texture;
+      var container, geom, mat, mesh, parent_directory, texture;
+      parent_directory = window.location.pathname;
+      parent_directory = parent_directory.substring(0, parent_directory.lastIndexOf('/'));
+      url = parent_directory + "/" + url;
       texture = EX.Visual_Factory.textureLoader.load(url);
       geom = new THREE.PlaneBufferGeometry(dim.w, dim.h, 32);
       mat = new THREE.MeshBasicMaterial({
