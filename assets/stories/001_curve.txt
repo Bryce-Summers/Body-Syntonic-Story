@@ -1,13 +1,15 @@
 story MVP
-  up 10
-  birth protagonist adult
-  arc left 30 
-  arc left 30
-  arc left 30
-  arc left 20 
-  arc left 40
-  arc left 30
-  arc right 30
+  introduce protagonist adult
+  up 20
+  arc left 180 
+  arc right 180
+  arc left 45
+  arc right 45
+  up 1
+  arc right 45
+  arc right 15
+  arc right 2
+  arc left 7
   up 10
   arc right 100
   arc left 50

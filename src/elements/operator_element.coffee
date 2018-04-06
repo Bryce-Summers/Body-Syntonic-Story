@@ -29,14 +29,36 @@ class BSS.Operator_Element extends BSS.Element
         # Remove all previous sub visual elements from the visual representation.
         container.clearVisuals()
 
-        # Operators have a visual depiction. For now we will just use a circle.
-        
-        operator_visual = EX.Visual_Factory.newPoint(new BDS.Point(0, 0), EX.style.c_operator_fill, EX.style.radius_operator_default)
+        # Operators have a visual depiction. For now we will just use a circle as default and icons for others.
+        model = @getModel()
+        type = model.getType()
+
+        size = EX.style.size_operator_icon
+        dim = {x:-size/2, y:-size/2, w:size, h:size}
+        directory = "/assets/images/"
+        sprite = directory + "default_operator_icon.png" # Default.
+
+        if type == "narrate"
+            sprite = directory + "Narration.png"
+        else if type == "say"
+            sprite = directory + "expression.png"
+        else if type == "think"
+            sprite = directory + "mind.png"
+        else if type == "food"
+            sprite = directory + "food.png"
+        else if type == "good"
+            sprite = directory + "happy_face.png"
+        else if type == "bad"
+            sprite = directory + "sad_face.png"
+
+        operator_visual = EX.Visual_Factory.newSprite(sprite, dim)
         container.addVisual(operator_visual)
 
+        ###
         number = EX.Visual_Factory.new_label("1")
         number.position.x = -1
         container.addVisual(number)
+        ###
 
         # Brake down character visual into body and legs.
         return

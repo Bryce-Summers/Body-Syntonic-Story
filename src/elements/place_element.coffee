@@ -136,16 +136,17 @@ class BSS.Place_Element extends BSS.Element
         # Initialize start of story.
         name = "start"
 
-        @loadStoryBlock(name, null, new BDS.Point(200, 0), new BDS.Point(1, 0))
+        @loadStoryBlock(name, [])
         return
 
-    loadStoryBlock: (storyName, last_path, position, up_direction) ->
+    loadStoryBlock: (storyName, states_start) ->
 
         storyGenerator = @_story_map[storyName]
 
         # Generate Elements.
-        elements = storyGenerator.generateElements(last_path, position, up_direction)
+        elements = storyGenerator.generateElements(states_start)
 
+        console.log(elements)
         # Store the list, so they can be deleted when necessary.
         # I guess I can store the list in the deletion operator events.
 
@@ -172,18 +173,25 @@ class BSS.Place_Element extends BSS.Element
                 # Set load or destroy functions for marked operators
                 operator = elem
                 model = operator.getModel()
+
                 if model.getType() == "story_load"
 
                     story_name = model.getState("story_name")
-                    last_path  = model.getState("path")
-                    [position, up] = last_path.getLocation(1.0)
+                    states  = model.getState("states")
                     place = @
 
-                    func = (story_name, pathy, position, up) -> ((agent_model) ->
-                        place.loadStoryBlock(story_name, pathy, position, up)
+                    # Load the next story if the agent is the protagonist, 
+                    # FIXME: otherwise don't load it.
+                    func = (story_name, states) -> (agent_model) -> (
+
+                        if agent_model.lookupKey("psychology") != "follow" #isProtagonist()
+                            console.log("loaded block")
+                            place.loadStoryBlock(story_name, states)
+                        #else
+                        #    destroy non player character.
                         )
 
-                    model.setFunction(func(story_name, last_path, position, up))
+                    model.setFunction(func(story_name, states))
 
             # FIXME: Add the rest of the types.
         return

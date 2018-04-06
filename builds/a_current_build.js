@@ -1,5 +1,5 @@
 /*! Sim Urban, a project by Bryce Summers.
- *  Single File concatenated by Grunt Concatenate on 04-04-2018
+ *  Single File concatenated by Grunt Concatenate on 06-04-2018
  */
 // All of the boiler plate, example project stuff should be out of a namespace.
 // all of the procedural elements unique to a project should be within this projects' specific namespace.
@@ -238,14 +238,41 @@ BSS = {};
     /* Representation building from path mathmatics. */
 
     Operator_Element.prototype.buildFromConfiguration = function() {
-      var container, number, operator_visual;
+      var container, dim, directory, model, operator_visual, size, sprite, type;
       container = this.getVisualRepresentation();
       container.clearVisuals();
-      operator_visual = EX.Visual_Factory.newPoint(new BDS.Point(0, 0), EX.style.c_operator_fill, EX.style.radius_operator_default);
+      model = this.getModel();
+      type = model.getType();
+      size = EX.style.size_operator_icon;
+      dim = {
+        x: -size / 2,
+        y: -size / 2,
+        w: size,
+        h: size
+      };
+      directory = "/assets/images/";
+      sprite = directory + "default_operator_icon.png";
+      if (type === "narrate") {
+        sprite = directory + "Narration.png";
+      } else if (type === "say") {
+        sprite = directory + "expression.png";
+      } else if (type === "think") {
+        sprite = directory + "mind.png";
+      } else if (type === "food") {
+        sprite = directory + "food.png";
+      } else if (type === "good") {
+        sprite = directory + "happy_face.png";
+      } else if (type === "bad") {
+        sprite = directory + "sad_face.png";
+      }
+      operator_visual = EX.Visual_Factory.newSprite(sprite, dim);
       container.addVisual(operator_visual);
-      number = EX.Visual_Factory.new_label("1");
-      number.position.x = -1;
-      container.addVisual(number);
+
+      /*
+      number = EX.Visual_Factory.new_label("1")
+      number.position.x = -1
+      container.addVisual(number)
+       */
     };
 
     Operator_Element.prototype.reposition = function() {
@@ -511,13 +538,14 @@ BSS = {};
       var name;
       this._story_map = map;
       name = "start";
-      this.loadStoryBlock(name, null, new BDS.Point(200, 0), new BDS.Point(1, 0));
+      this.loadStoryBlock(name, []);
     };
 
-    Place_Element.prototype.loadStoryBlock = function(storyName, last_path, position, up_direction) {
-      var agent_model, elem, elements, func, i, len, model, operator, place, ref, storyGenerator, story_name, up;
+    Place_Element.prototype.loadStoryBlock = function(storyName, states_start) {
+      var agent_model, elem, elements, func, i, len, model, operator, place, states, storyGenerator, story_name;
       storyGenerator = this._story_map[storyName];
-      elements = storyGenerator.generateElements(last_path, position, up_direction);
+      elements = storyGenerator.generateElements(states_start);
+      console.log(elements);
       for (i = 0, len = elements.length; i < len; i++) {
         elem = elements[i];
         if (elem instanceof BSS.Path_Element) {
@@ -541,15 +569,17 @@ BSS = {};
           model = operator.getModel();
           if (model.getType() === "story_load") {
             story_name = model.getState("story_name");
-            last_path = model.getState("path");
-            ref = last_path.getLocation(1.0), position = ref[0], up = ref[1];
+            states = model.getState("states");
             place = this;
-            func = function(story_name, pathy, position, up) {
+            func = function(story_name, states) {
               return function(agent_model) {
-                return place.loadStoryBlock(story_name, pathy, position, up);
+                if (agent_model.lookupKey("psychology") !== "follow") {
+                  console.log("loaded block");
+                  return place.loadStoryBlock(story_name, states);
+                }
               };
             };
-            model.setFunction(func(story_name, last_path, position, up));
+            model.setFunction(func(story_name, states));
           }
         }
       }
@@ -1779,7 +1809,7 @@ Notes:
     }
 
     Path_Model.prototype.moveAgents = function(dt) {
-      var agent, c, companions, j, k, l, lane, len, len1, len2, len3, m, navigation, next_path, oper, oper_index, path_model, per_end, per_operator, per_start, percentages_per_meter;
+      var agent, c, companions, j, k, l, lane, len, len1, len2, navigation, next_path, oper, oper_index, path_model, per_end, per_operator, per_start, percentages_per_meter;
       agent = this.last_agent;
       percentages_per_meter = 1.0 / this._distance;
       while (agent !== null && agent.getNavigation().getCurrentLocation() === this) {
@@ -1805,18 +1835,14 @@ Notes:
             per_operator = oper.percentage;
             while (oper_index < lane.operators.length && oper.percentage <= per_end) {
               agent.operate(oper.operator);
-              for (l = 0, len2 = companions.length; l < len2; l++) {
-                c = companions[l];
-                c.operate(oper.operator);
-              }
               oper_index += 1;
               oper = lane.operators[oper_index];
             }
           }
         }
         if (per_end > 1.0) {
-          for (m = 0, len3 = companions.length; m < len3; m++) {
-            agent = companions[m];
+          for (l = 0, len2 = companions.length; l < len2; l++) {
+            agent = companions[l];
             navigation = agent.getNavigation();
             path_model = navigation.getCurrentLocation();
             next_path = path_model.getDestination(agent);
@@ -2174,13 +2200,13 @@ Allows for new story block elements to be instantiated. Generates instances, but
       this.tokens = tokens;
     }
 
-    Story_Generator.prototype.newState = function(last_path, position, rotation_angle) {
+    Story_Generator.prototype.newState = function() {
       var state;
       state = {};
-      state.path = last_path;
+      state.path = null;
       state.normalized_path_length = 0;
-      state.position = position;
-      state.rotation_angle = rotation_angle;
+      state.position = new BDS.Point(0, 0);
+      state.rotation_angle = 0;
       state.output = [];
       state.forked_state = null;
       state.conditional_function = null;
@@ -2204,6 +2230,21 @@ Allows for new story block elements to be instantiated. Generates instances, but
       return out;
     };
 
+    Story_Generator.prototype.continuationCopy = function(states) {
+      var j, len1, out, s, state;
+      out = [];
+      for (j = 0, len1 = states.length; j < len1; j++) {
+        state = states[j];
+        s = this.newState();
+        s.path = state.path;
+        s.position = state.position;
+        s.rotation_angle = state.rotation_angle;
+        s.index = state.index;
+        out.push(s);
+      }
+      return out;
+    };
+
 
     /*
     story MVP
@@ -2221,19 +2262,24 @@ Allows for new story block elements to be instantiated. Generates instances, but
     the end
      */
 
-    Story_Generator.prototype.generateElements = function(last_path, position, up_direction) {
-      var forked_state, i, j, k, ref, ref1, rotation_angle, state, state_index, states, token_list;
-      rotation_angle = Math.atan2(up_direction.y, up_direction.x);
-      state = this.newState(last_path, position, rotation_angle);
-      states = [state];
-      for (i = j = 0, ref = this.tokens.length; 0 <= ref ? j < ref : j > ref; i = 0 <= ref ? ++j : --j) {
+    Story_Generator.prototype.generateElements = function(states_start) {
+      var forked_state, i, j, k, l, len1, len2, m, out, pred, ref, ref1, state, state_index, states, token_list;
+      states = [];
+      for (j = 0, len1 = states_start.length; j < len1; j++) {
+        state = states_start[j];
+        states.push(this.copyState(state));
+      }
+      for (i = k = 0, ref = this.tokens.length; 0 <= ref ? k < ref : k > ref; i = 0 <= ref ? ++k : --k) {
         token_list = this.tokens[i];
         if (token_list[0] === "introduce") {
-          debugger;
           states = this.generateAgent(token_list, states);
           continue;
         }
-        for (state_index = k = 0, ref1 = states.length; 0 <= ref1 ? k < ref1 : k > ref1; state_index = 0 <= ref1 ? ++k : --k) {
+        if (token_list[0] === "tell") {
+          this.generateTellOperators(states, token_list);
+          continue;
+        }
+        for (state_index = l = 0, ref1 = states.length; 0 <= ref1 ? l < ref1 : l > ref1; state_index = 0 <= ref1 ? ++l : --l) {
           state = states[state_index];
           state.token_list = token_list;
           state.type = token_list[0];
@@ -2245,11 +2291,10 @@ Allows for new story block elements to be instantiated. Generates instances, but
           if state.type == "introduce"
               @generateAgent(state)
            */
-          if (state.type === "narrate") {
-            this.generateNarration(state);
-          }
-          if (state.type === "food") {
-            this.generateOperator(state);
+          pred = state.type === "narrate" || state.type === "say" || state.type === "think";
+          pred = pred || (state.type === "food" || state.type === "good" || state.type === "bad");
+          if (pred) {
+            this.generateMessage(state);
           }
           if (state.type === "fork") {
             if (state.forked_state === null) {
@@ -2262,9 +2307,6 @@ Allows for new story block elements to be instantiated. Generates instances, but
               states[state_index] = state;
             }
             state.conditional_function = this.generateAgentConditionalFunction(token_list.slice(1));
-          }
-          if (state.type === "tell") {
-            this.generateTellOperator(state);
           }
         }
 
@@ -2282,7 +2324,12 @@ Allows for new story block elements to be instantiated. Generates instances, but
             path_model1.setRightLane(path_model2)
          */
       }
-      return state.output;
+      out = [];
+      for (m = 0, len2 = states.length; m < len2; m++) {
+        state = states[m];
+        out = out.concat(state.output);
+      }
+      return out;
     };
 
     Story_Generator.prototype.generatePath = function(state) {
@@ -2375,6 +2422,9 @@ Allows for new story block elements to be instantiated. Generates instances, but
         state = this.constructRightState(states[states.length - 1]);
         states.push(state);
       } else {
+        if (states.length === 0) {
+          states.push(this.newState());
+        }
         for (j = 0, len1 = states.length; j < len1; j++) {
           s = states[j];
           if (s.index === 0) {
@@ -2401,9 +2451,10 @@ Allows for new story block elements to be instantiated. Generates instances, but
       right = new BDS.Point(-up.y, up.x);
       offset = path.getCrossSectionRadius();
       lane_pos = loc.add(right.multScalar(offset));
-      out = this.newState(null, lane_pos, state.rotation_angle);
+      out = this.newState();
+      out.position = lane_pos;
+      out.rotation_angle = state.rotation_angle;
       out.index = state.index + 1;
-      out.output = state.output;
       return out;
     };
 
@@ -2414,13 +2465,14 @@ Allows for new story block elements to be instantiated. Generates instances, but
       left = new BDS.Point(up.y, -up.x);
       offset = path.getCrossSectionRadius();
       lane_pos = loc.add(left.multScalar(offset));
-      out = this.newState(null, lane_pos, state.rotation_angle);
+      out = this.newState();
+      out.position = lane_pos;
+      out.rotation_angle = state.rotation_angle;
       out.index = state.index - 1;
-      out.output = state.output;
       return out;
     };
 
-    Story_Generator.prototype.generateNarration = function(state) {
+    Story_Generator.prototype.generateMessage = function(state) {
       var func, i, j, message, normalized_dist, ref, str;
       normalized_dist = state.token_list[1];
       message = "";
@@ -2428,45 +2480,57 @@ Allows for new story block elements to be instantiated. Generates instances, but
         str = state.token_list[i];
         message = message + " " + str;
       }
-      console.log(message);
+      console.log(state.token_list[0]);
       func = function(agent_model) {
         return agent_model.statistics.setNarrative(message);
       };
-      this.addOperatorToPath(func, normalized_dist, state);
+      this.addOperatorToPath(func, normalized_dist, state, state.token_list[0]);
     };
 
     Story_Generator.prototype.generateOperator = function(state) {
-      var func, normalized_dist;
+      var func, normalized_dist, type;
       normalized_dist = state.token_list[1];
+      type = false;
       if (state.token_list[0] === "food") {
         func = function(agent_model) {
           var food;
           food = agent_model.statistics.getFood();
           return agent_model.statistics.setFood(food + 1);
         };
+        type = "food";
       }
-      this.addOperatorToPath(func, normalized_dist, state);
+      this.addOperatorToPath(func, normalized_dist, state, type);
     };
 
-    Story_Generator.prototype.addOperatorToPath = function(func, normalized_distance, state) {
-      var operator, percentage;
+    Story_Generator.prototype.addOperatorToPath = function(func, normalized_distance, state, type) {
+      var model, operator, percentage;
       percentage = normalized_distance / state.normalized_path_length;
       operator = new BSS.Operator_Element();
       operator.setFunction(func);
       state.path.addOperator(operator, percentage);
       state.output.push(operator);
+      if (type) {
+        model = operator.getModel();
+        model.setType(type);
+        operator.buildFromConfiguration();
+      }
     };
 
-    Story_Generator.prototype.generateTellOperator = function(state) {
-      var model, operator, percentage;
+    Story_Generator.prototype.generateTellOperators = function(states, token_list) {
+      var continue_states, j, len1, model, operator, percentage, state;
+      continue_states = this.continuationCopy(states);
       percentage = .99;
-      operator = new BSS.Operator_Element();
-      model = operator.getModel();
-      model.setType("story_load");
-      model.setState("story_name", state.token_list[1]);
-      model.setState("path", state.path);
-      state.path.addOperator(operator, percentage);
-      return state.output.push(operator);
+      for (j = 0, len1 = states.length; j < len1; j++) {
+        state = states[j];
+        operator = new BSS.Operator_Element();
+        model = operator.getModel();
+        model.setType("story_load");
+        model.setState("story_name", token_list[1]);
+        model.setState("states", continue_states);
+        operator.buildFromConfiguration();
+        state.path.addOperator(operator, percentage);
+        state.output.push(operator);
+      }
     };
 
     Story_Generator.prototype.generateConditional = function(state) {
@@ -3020,6 +3084,7 @@ Purpose: Creates THREE.js paths.
       radius_path_default: 50,
       radius_operator_default: 10,
       radius_agent_default: 20,
+      size_operator_icon: 40,
       file_to_screen_distance_factor: 8,
       path_curvature_inverse: 100,
       radius_road_local: 50,

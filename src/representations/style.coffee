@@ -16,6 +16,8 @@ EX.init_style = () ->
         radius_operator_default: 10,
         radius_agent_default: 20,
 
+        size_operator_icon: 40,
+
         # converts 100 in story files to the length of the minnimum screen dimension.
         file_to_screen_distance_factor: 8,
         path_curvature_inverse: 100,

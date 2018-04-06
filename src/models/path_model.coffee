@@ -84,11 +84,13 @@ class BSS.Path_Model extends BSS.Model
 
                     # If we've moved past an operation, then perform all operations between its start and end percentage.
                     while oper_index < lane.operators.length and oper.percentage <= per_end
+                        
+                        # Operate on the agent in this lane.
                         agent.operate(oper.operator)
 
                         # Operate on all companions.
-                        for c in companions
-                            c.operate(oper.operator)
+                        #for c in companions
+                        #    c.operate(oper.operator)
 
                         oper_index += 1
                         # Next oper.

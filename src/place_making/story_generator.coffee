@@ -23,20 +23,24 @@ class BSS.Story_Generator
     # When parrallel paths are used, an ordered list of states is maintained. All operations are applied to each state.
     # Each state thinks of itself as a single lane, but they are weaved together to form parrallel streams.
     # Each variable contains relevant local information to the particular stream.
-    newState: (last_path, position, rotation_angle) ->
+    # FIXME: Make these a property of the class, rather than instance?
+    newState: () ->
+        
         state = {}
-        state.path = last_path # Current Element. The mainline path, which may have extra lanes attached to either side.
+        state.path = null # Current Element. The mainline path, which may have extra lanes attached to either side.
+
         state.normalized_path_length = 0
-        state.position = position
-        state.rotation_angle = rotation_angle
+        state.position = new BDS.Point(0, 0)
+        state.rotation_angle = 0
         state.output = []
         state.forked_state = null # The state to revert to on a fork command.
         state.conditional_function = null # The current function that should be used as a key in a conditional.
 
         # The latest character that has been introduced that should be instantiated within this state stream.
         state.character = null
-
-        state.index = 0 # [-inf, -2, left lanes, 0 (mid_lane), right lanes, 2, 3, inf]
+        # [-inf, -2, left lanes, 0 (mid_lane), right lanes, 2, 3, inf]
+        # Index should be 0 for the midline and others will have road radiuses of curvature differ to align lane turns.
+        state.index = 0
         return state
 
     #(state{}) -> copy of state object.
@@ -58,6 +62,19 @@ class BSS.Story_Generator
         # 'right'  --> Add character to a newly generated right lane.
         return out
 
+    # Creates copies with all of the information necessary for continuing the states in the next story telling.
+    continuationCopy: (states) ->
+        out = []
+        for state in states
+            s = @newState()
+            s.path = state.path
+            s.position = state.position
+            s.rotation_angle = state.rotation_angle
+            s.index = state.index
+
+            out.push(s)
+
+        return out
 
     #() -> [elements] Produces a list of elements that are all consistently linked up. Produces them relative the given position and rotation.
     ###
@@ -76,23 +93,25 @@ class BSS.Story_Generator
     the end
     ###
     # Given a BSS.Path_Element
-    generateElements: (last_path, position, up_direction) ->
+    generateElements: (states_start) ->
 
-        rotation_angle = Math.atan2(up_direction.y, up_direction.x)
-        
-        # Using a state machine, generates all of the elements.
-        state = @newState(last_path, position, rotation_angle)
-
-        states = [state]
+        # Start with copies of all of the given start states.
+        states = []
+        for state in states_start
+            states.push(@copyState(state))
 
         for i in [0...@tokens.length]
             token_list = @tokens[i]
 
             # Character Introductions.
             if token_list[0] == "introduce"
-                debugger
                 states = @generateAgent(token_list, states)
+                continue
 
+            # Follow up story.
+            if token_list[0] == "tell"
+                # Tells the story using all states.
+                @generateTellOperators(states, token_list)
                 continue
 
             # Perform the sequential operations for all of the parrallel states.
@@ -107,10 +126,10 @@ class BSS.Story_Generator
                 if state.type == "introduce"
                     @generateAgent(state)
                 ###
-                if state.type == "narrate"
-                    @generateNarration(state)
-                if state.type == "food"
-                    @generateOperator(state)
+                pred = (state.type == "narrate" or state.type == "say" or state.type == "think")
+                pred = pred or (state.type == "food" or state.type == "good" or state.type == "bad")
+                if pred
+                    @generateMessage(state)
                 if state.type == "fork"
 
                     # Generate a fork revert state if necessary.
@@ -135,10 +154,6 @@ class BSS.Story_Generator
                     # will coorespond to the next path that will be generated.
                     state.conditional_function = @generateAgentConditionalFunction(token_list[1..])
 
-                # Follow up story
-                if state.type == "tell"
-                    @generateTellOperator(state)
-
             # Link up states and add characters.
             ###
             @update
@@ -154,7 +169,11 @@ class BSS.Story_Generator
                 path_model1.setRightLane(path_model2)
             ###
 
-        return state.output
+        out = []
+        for state in states
+            out = out.concat(state.output)
+
+        return out
 
     # Generates paths continuing from the previous path and geometric location.
     # Continues every lane of the last path.
@@ -285,6 +304,11 @@ class BSS.Story_Generator
             states.push(state)
         else
             # Character added to an existing path.
+
+            # Create a state if none exist.
+            if states.length == 0
+                states.push(@newState())
+
             for s in states
                 # Only add this character to the midline.
                 if s.index == 0
@@ -320,9 +344,10 @@ class BSS.Story_Generator
         offset = path.getCrossSectionRadius()
         lane_pos = loc.add(right.multScalar(offset))
 
-        out = @newState(null, lane_pos, state.rotation_angle)
+        out = @newState()
+        out.position = lane_pos
+        out.rotation_angle = state.rotation_angle
         out.index = state.index + 1
-        out.output = state.output
         return out
 
     constructLeftState: (state) ->
@@ -336,14 +361,17 @@ class BSS.Story_Generator
         offset = path.getCrossSectionRadius()
         lane_pos = loc.add(left.multScalar(offset))
 
-        out = @newState(null, lane_pos, state.rotation_angle)
+        out = @newState()
+        out.position = lane_pos
+        out.rotation_angle = state.rotation_angle
         out.index = state.index - 1
-        out.output = state.output
         return out
 
 
     # FIXME: Abstract the operator generation functionality.
-    generateNarration: (state) ->
+    # Messages come in the following types, indicated by the first token:
+    # narrative, expressions, thoughts. There may be various types of these.
+    generateMessage: (state) ->
 
         # Compute percentage of operator location.
         normalized_dist = state.token_list[1]
@@ -354,9 +382,11 @@ class BSS.Story_Generator
             str = state.token_list[i]
             message = message + " " + str
 
-        console.log(message)
+        # FIXME: Update the various statistics.
+        console.log(state.token_list[0])
+
         func = (agent_model) -> agent_model.statistics.setNarrative(message)
-        @addOperatorToPath(func, normalized_dist, state)
+        @addOperatorToPath(func, normalized_dist, state, state.token_list[0])
 
         return
 
@@ -365,6 +395,8 @@ class BSS.Story_Generator
         # Compute percentage of operator location.
         normalized_dist = state.token_list[1]
         
+        type = false
+
         # determine operator function.
         if state.token_list[0] == "food"
 
@@ -373,30 +405,51 @@ class BSS.Story_Generator
                 agent_model.statistics.setFood(food + 1)
                 )
 
-        @addOperatorToPath(func, normalized_dist, state)
+            type = "food"
+
+        @addOperatorToPath(func, normalized_dist, state, type)
             
         return
 
     # Creates an operator, adds it to the given path, adds it to the output.
-    addOperatorToPath: (func, normalized_distance, state) ->
+    addOperatorToPath: (func, normalized_distance, state, type) ->
         percentage = normalized_distance / state.normalized_path_length
 
         operator = new BSS.Operator_Element()
         operator.setFunction(func)
         state.path.addOperator(operator, percentage)
         state.output.push(operator)
+
+        if type
+            model = operator.getModel()
+            model.setType(type)
+            operator.buildFromConfiguration()
+
         return
 
     # Generates a load operator for new story.
-    generateTellOperator: (state) ->
+    generateTellOperators: (states, token_list) ->
+
+        # Create state continuation copy of states array.
+        continue_states = @continuationCopy(states)
         percentage = .99
-        operator = new BSS.Operator_Element()
-        model = operator.getModel()
-        model.setType("story_load")
-        model.setState("story_name", state.token_list[1]) # tell NAME
-        model.setState("path", state.path)
-        state.path.addOperator(operator, percentage)
-        state.output.push(operator)
+
+        for state in states
+            operator = new BSS.Operator_Element()
+
+            # Model points to the continuation states.
+            model = operator.getModel()
+            model.setType("story_load")
+            model.setState("story_name", token_list[1]) # tell NAME
+            model.setState("states", continue_states)
+
+            operator.buildFromConfiguration()
+
+            # Add the tell operator the the states from the current block.
+            state.path.addOperator(operator, percentage)
+            state.output.push(operator)
+
+        return
 
 
     generateConditional: (state) ->
