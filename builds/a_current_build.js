@@ -238,7 +238,7 @@ BSS = {};
     /* Representation building from path mathmatics. */
 
     Operator_Element.prototype.buildFromConfiguration = function() {
-      var container, dim, directory, model, operator_visual, size, sprite, type;
+      var container, dim, directory, model, operator_visual, parent_directory, size, sprite, type;
       container = this.getVisualRepresentation();
       container.clearVisuals();
       model = this.getModel();
@@ -250,7 +250,9 @@ BSS = {};
         w: size,
         h: size
       };
-      directory = "/assets/images/";
+      parent_directory = window.location.pathname;
+      parent_directory = parent_directory.substring(0, parent_directory.lastIndexOf('/'));
+      directory = parent_directory + "/assets/images/";
       sprite = directory + "default_operator_icon.png";
       if (type === "narrate") {
         sprite = directory + "Narration.png";
