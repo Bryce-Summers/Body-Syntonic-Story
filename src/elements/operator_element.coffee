@@ -8,6 +8,17 @@
 
 class BSS.Operator_Element extends BSS.Element
 
+    @variable_names = new Set()
+    @variable_icons = {} # Map from names to values.
+
+    # Define a new variable value that will be found in the story.
+    @mapVariable: (name, directory) ->
+        BSS.Operator_Element.variable_names.add(name)
+        BSS.Operator_Element.variable_icons[name] = directory
+
+    @hasVariable: (name) ->
+        return BSS.Operator_Element.variable_names.has(name)
+
     # All agents have to be located on a path.
     constructor: () ->
 
@@ -44,12 +55,12 @@ class BSS.Operator_Element extends BSS.Element
             sprite = directory + "expression.png"
         else if type == "think"
             sprite = directory + "mind.png"
-        else if type == "food"
-            sprite = directory + "food.png"
         else if type == "good"
             sprite = directory + "happy_face.png"
         else if type == "bad"
             sprite = directory + "sad_face.png"
+        else if BSS.Operator_Element.variable_names.has(type)
+            sprite = BSS.Operator_Element.variable_icons[type]
 
         operator_visual = EX.Visual_Factory.newSprite(sprite, dim)
         container.addVisual(operator_visual)

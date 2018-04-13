@@ -1,10 +1,13 @@
+var food assets\story_icons\food.png
+
 story Operators
   introduce protagonist adult
   up 100
   narrate 10 This demo will show you all of the operators.
   say 20 Its me world!
   think 30 Where am I?
-  good 40 You had a good experience!
-  bad  50 You had a bad experience!
-  food 60 You ate a dumpling.
+  good 40 That was good!
+  bad  50 That was bad.
+  food 60 Dumpling.
+  narrate 80 You've had \good good experiences.
 the end

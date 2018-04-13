@@ -127,7 +127,8 @@ class BSS.Story_Generator
                     @generateAgent(state)
                 ###
                 pred = (state.type == "narrate" or state.type == "say" or state.type == "think")
-                pred = pred or (state.type == "food" or state.type == "good" or state.type == "bad")
+                pred = pred or (state.type == "good" or state.type == "bad")
+                pred = pred or BSS.Operator_Element.hasVariable(state.type)
                 if pred
                     @generateMessage(state)
                 if state.type == "fork"
@@ -371,6 +372,9 @@ class BSS.Story_Generator
     # FIXME: Abstract the operator generation functionality.
     # Messages come in the following types, indicated by the first token:
     # narrative, expressions, thoughts. There may be various types of these.
+    # Messages can also contain specific operations for modifying a statistics value.
+    # the default operation is to increase the type's value by 1.
+    # FIXME: Allow for setting to specific values.
     generateMessage: (state) ->
 
         # Compute percentage of operator location.
@@ -385,30 +389,21 @@ class BSS.Story_Generator
         # FIXME: Update the various statistics.
         console.log(state.token_list[0])
 
-        func = (agent_model) -> agent_model.statistics.setNarrative(message)
-        @addOperatorToPath(func, normalized_dist, state, state.token_list[0])
 
-        return
+        type = state.token_list[0]
 
-    generateOperator: (state) ->
+        # Generates an expressive outcome to the player.
+        func = (type) ->((agent_model) ->
+            agent_model.statistics.setNarrative(message)
+            agent_model.statistics.setNarrativeType(type)
 
-        # Compute percentage of operator location.
-        normalized_dist = state.token_list[1]
-        
-        type = false
+            # Default Operation. (+1)
+            val = agent_model.statistics.getValue(type)
+            val = val + 1
+            agent_model.statistics.setValue(type, val)
+            )
+        @addOperatorToPath(func(type), normalized_dist, state, state.token_list[0])
 
-        # determine operator function.
-        if state.token_list[0] == "food"
-
-            func = (agent_model) -> (
-                food = agent_model.statistics.getFood()
-                agent_model.statistics.setFood(food + 1)
-                )
-
-            type = "food"
-
-        @addOperatorToPath(func, normalized_dist, state, type)
-            
         return
 
     # Creates an operator, adds it to the given path, adds it to the output.

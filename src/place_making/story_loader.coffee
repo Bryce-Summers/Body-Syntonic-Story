@@ -69,7 +69,11 @@ class BSS.Story_Loader
             if line[0] == "the" and line[1] == "end"
                 block_end_indices.push(i)
 
-            
+            # Define variable properties.
+            if line[0] == "var"
+                name = line[1]
+                icon_filename = line[2]
+                BSS.Operator_Element.mapVariable(name, icon_filename)
 
             lines[i] = line # Put the line back after tokenization.
 
@@ -98,7 +102,7 @@ class BSS.Story_Loader
             map[name] = storyGenerator
 
             # Handle Starting Story. Once Upon a time.
-            if name == start_name
+            if not map.start
                 map.start = storyGenerator
 
         @place.setStoryMap(map)

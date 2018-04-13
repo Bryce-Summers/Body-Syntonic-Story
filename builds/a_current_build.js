@@ -1,5 +1,5 @@
 /*! Sim Urban, a project by Bryce Summers.
- *  Single File concatenated by Grunt Concatenate on 06-04-2018
+ *  Single File concatenated by Grunt Concatenate on 13-04-2018
  */
 // All of the boiler plate, example project stuff should be out of a namespace.
 // all of the procedural elements unique to a project should be within this projects' specific namespace.
@@ -223,6 +223,19 @@ BSS = {};
   BSS.Operator_Element = (function(superClass) {
     extend(Operator_Element, superClass);
 
+    Operator_Element.variable_names = new Set();
+
+    Operator_Element.variable_icons = {};
+
+    Operator_Element.mapVariable = function(name, directory) {
+      BSS.Operator_Element.variable_names.add(name);
+      return BSS.Operator_Element.variable_icons[name] = directory;
+    };
+
+    Operator_Element.hasVariable = function(name) {
+      return BSS.Operator_Element.variable_names.has(name);
+    };
+
     function Operator_Element() {
       Operator_Element.__super__.constructor.call(this, new BSS.Operator_Model());
       this._path = null;
@@ -250,7 +263,7 @@ BSS = {};
         w: size,
         h: size
       };
-      directory = "/assets/images/";
+      directory = "assets/images/";
       sprite = directory + "default_operator_icon.png";
       if (type === "narrate") {
         sprite = directory + "Narration.png";
@@ -258,12 +271,12 @@ BSS = {};
         sprite = directory + "expression.png";
       } else if (type === "think") {
         sprite = directory + "mind.png";
-      } else if (type === "food") {
-        sprite = directory + "food.png";
       } else if (type === "good") {
         sprite = directory + "happy_face.png";
       } else if (type === "bad") {
         sprite = directory + "sad_face.png";
+      } else if (BSS.Operator_Element.variable_names.has(type)) {
+        sprite = BSS.Operator_Element.variable_icons[type];
       }
       operator_visual = EX.Visual_Factory.newSprite(sprite, dim);
       container.addVisual(operator_visual);
@@ -754,6 +767,12 @@ BSS = {};
 
     Scene.prototype.deletePlace = function(element) {
       return this._places["delete"](element);
+    };
+
+    Scene.prototype.addOverlay = function(obj, layer_index) {
+      var view;
+      view = this._view_levels[layer_index];
+      return view.add(obj);
     };
 
     return Scene;
@@ -2094,11 +2113,10 @@ Notes:
     extend(Statistics_Model, superClass);
 
     function Statistics_Model() {
-      this._food = 0;
-      this._foodChanged = true;
-      this.experiences = 0;
+      this._records = {};
       this._narrative = "Press Up Key to begin journey!";
       this._narrativeChanged = true;
+      this._narrativeType = "narrate";
     }
 
     Statistics_Model.prototype.buildModel = function() {};
@@ -2145,6 +2163,28 @@ Notes:
     Statistics_Model.prototype.setNarrative = function(val) {
       this._narrative = val;
       return this._narrativeChanged = true;
+    };
+
+    Statistics_Model.prototype.setNarrativeType = function(type) {
+      return this._narrativeType = type;
+    };
+
+    Statistics_Model.prototype.getNarrativeType = function() {
+      return this._narrativeType;
+    };
+
+    Statistics_Model.prototype.getValue = function(name) {
+      var val;
+      val = this._records[name];
+      if (val === void 0) {
+        this._records[name] = 0;
+        val = 0;
+      }
+      return val;
+    };
+
+    Statistics_Model.prototype.setValue = function(name, val) {
+      return this._records[name] = val;
     };
 
     return Statistics_Model;
@@ -2292,7 +2332,8 @@ Allows for new story block elements to be instantiated. Generates instances, but
               @generateAgent(state)
            */
           pred = state.type === "narrate" || state.type === "say" || state.type === "think";
-          pred = pred || (state.type === "food" || state.type === "good" || state.type === "bad");
+          pred = pred || (state.type === "good" || state.type === "bad");
+          pred = pred || BSS.Operator_Element.hasVariable(state.type);
           if (pred) {
             this.generateMessage(state);
           }
@@ -2473,7 +2514,7 @@ Allows for new story block elements to be instantiated. Generates instances, but
     };
 
     Story_Generator.prototype.generateMessage = function(state) {
-      var func, i, j, message, normalized_dist, ref, str;
+      var func, i, j, message, normalized_dist, ref, str, type;
       normalized_dist = state.token_list[1];
       message = "";
       for (i = j = 2, ref = state.token_list.length; j < ref; i = j += 1) {
@@ -2481,25 +2522,18 @@ Allows for new story block elements to be instantiated. Generates instances, but
         message = message + " " + str;
       }
       console.log(state.token_list[0]);
-      func = function(agent_model) {
-        return agent_model.statistics.setNarrative(message);
-      };
-      this.addOperatorToPath(func, normalized_dist, state, state.token_list[0]);
-    };
-
-    Story_Generator.prototype.generateOperator = function(state) {
-      var func, normalized_dist, type;
-      normalized_dist = state.token_list[1];
-      type = false;
-      if (state.token_list[0] === "food") {
-        func = function(agent_model) {
-          var food;
-          food = agent_model.statistics.getFood();
-          return agent_model.statistics.setFood(food + 1);
+      type = state.token_list[0];
+      func = function(type) {
+        return function(agent_model) {
+          var val;
+          agent_model.statistics.setNarrative(message);
+          agent_model.statistics.setNarrativeType(type);
+          val = agent_model.statistics.getValue(type);
+          val = val + 1;
+          return agent_model.statistics.setValue(type, val);
         };
-        type = "food";
-      }
-      this.addOperatorToPath(func, normalized_dist, state, type);
+      };
+      this.addOperatorToPath(func(type), normalized_dist, state, state.token_list[0]);
     };
 
     Story_Generator.prototype.addOperatorToPath = function(func, normalized_distance, state, type) {
@@ -2612,7 +2646,7 @@ Purpose: creates a named set of story generators from the given text file.
      */
 
     Story_Loader.prototype.createStories = function(text) {
-      var block_end_indices, block_lines, block_start_indices, i, index, index_end, index_start, j, k, l, line, lines, map, name, ref, ref1, ref2, ref3, start_name, storyGenerator;
+      var block_end_indices, block_lines, block_start_indices, i, icon_filename, index, index_end, index_start, j, k, l, line, lines, map, name, ref, ref1, ref2, ref3, start_name, storyGenerator;
       console.log(text);
       text = text.replace("\t", " ");
       lines = text.split("\n");
@@ -2630,6 +2664,11 @@ Purpose: creates a named set of story generators from the given text file.
         }
         if (line[0] === "the" && line[1] === "end") {
           block_end_indices.push(i);
+        }
+        if (line[0] === "var") {
+          name = line[1];
+          icon_filename = line[2];
+          BSS.Operator_Element.mapVariable(name, icon_filename);
         }
         lines[i] = line;
       }
@@ -2652,7 +2691,7 @@ Purpose: creates a named set of story generators from the given text file.
         storyGenerator = new BSS.Story_Generator(block_lines);
         name = block_lines[0][1];
         map[name] = storyGenerator;
-        if (name === start_name) {
+        if (!map.start) {
           map.start = storyGenerator;
         }
       }
@@ -2710,7 +2749,7 @@ This is a test place, it initializes the MVP story to test functionality, before
       var storyLoader, story_map;
       Test_Place.__super__.constructor.call(this, scene);
       storyLoader = new BSS.Story_Loader(this);
-      story_map = storyLoader.load_story('assets/stories/004_friends.txt');
+      story_map = storyLoader.load_story('assets/stories/006_operators.txt');
       this.init_scene_ui();
     }
 
@@ -2757,37 +2796,30 @@ This is a test place, it initializes the MVP story to test functionality, before
     };
 
     Test_Place.prototype.init_scene_ui = function() {
-      var h, label_h, p0, p1, p2, p3, pLine, ref, textbox_params, ui, ui_elements, w;
-      ref = this.scene.getUI(), ui = ref[0], ui_elements = ref[1];
-      w = 1200;
-      h = 800;
-      label_h = 50;
-      p0 = new BDS.Point(w / 4, h - label_h);
-      p1 = new BDS.Point(w * 3 / 4, h - label_h);
-      p2 = new BDS.Point(w * 3 / 4, h);
-      p3 = new BDS.Point(w / 4, h);
-      pLine = new BDS.Polyline(false, [p0, p1, p2, p3]);
-      textbox_params = {
-        fill: EX.style.c_building_fill,
-        area: pLine,
-        textx: w / 4,
-        texty: h,
-        str: "Food becomes the body."
-      };
-      ui_elements.textbox = ui.createLabel(textbox_params);
-      p0 = new BDS.Point(0, h - label_h);
-      p1 = new BDS.Point(w / 4, h - label_h);
-      p2 = new BDS.Point(w / 4, h);
-      p3 = new BDS.Point(0, h);
-      pLine = new BDS.Polyline(false, [p0, p1, p2, p3]);
-      textbox_params = {
-        fill: EX.style.c_building_fill,
-        area: pLine,
-        textx: p3.x,
-        texty: p3.y,
-        str: EX.style.resource_name_food + "0"
-      };
-      return ui_elements.foodbox = ui.createLabel(textbox_params);
+      var ref, ui, ui_elements;
+      return ref = this.scene.getUI(), ui = ref[0], ui_elements = ref[1], ref;
+
+      /*
+      w = 1200
+      h = 800
+      label_h = 50
+      p0 = new BDS.Point(w/4,   h - label_h)
+      p1 = new BDS.Point(w*3/4, h - label_h)
+      p2 = new BDS.Point(w*3/4, h)
+      p3 = new BDS.Point(w/4, h)
+      pLine = new BDS.Polyline(false, [p0, p1, p2, p3])
+      textbox_params = {fill:EX.style.c_building_fill, area:pLine, textx:w/4, texty:h, str:"Food becomes the body."}
+      ui_elements.textbox = ui.createLabel(textbox_params)
+      
+       * Construct a label for the food resource.
+      p0 = new BDS.Point(0,   h - label_h)
+      p1 = new BDS.Point(w/4, h - label_h)
+      p2 = new BDS.Point(w/4, h)
+      p3 = new BDS.Point(0, h)
+      pLine = new BDS.Polyline(false, [p0, p1, p2, p3])
+      textbox_params = {fill:EX.style.c_building_fill, area:pLine, textx:p3.x, texty:p3.y, str:EX.style.resource_name_food + "0"}
+      ui_elements.foodbox = ui.createLabel(textbox_params)
+       */
     };
 
     return Test_Place;
@@ -3984,27 +4016,98 @@ Updates the scene's ui based on the statistics of the focus agent.
     }
 
     TimeTool_DisplayFocusAgentStatistics.prototype.time = function(dt) {
-      var focus_agent, foodbox, ref, statistics, textbox, ui, ui_elements;
+      var agent_model, focus_agent, message, ref, statistics, type, ui, ui_elements;
       focus_agent = this.scene.getFocusAgent();
       if (focus_agent === null) {
         return;
       }
       ref = this.scene.getUI(), ui = ref[0], ui_elements = ref[1];
-      statistics = focus_agent.getModel().getStatistics();
-      if (statistics.foodChanged()) {
-        foodbox = ui_elements.foodbox;
-        foodbox.str = EX.style.resource_name_food + statistics.getFood();
-        ui.updateLabel(foodbox, {
-          update_str: true
-        });
-      }
+      agent_model = focus_agent.getModel();
+      statistics = agent_model.getStatistics();
+      message = "";
       if (statistics.narrativeChanged()) {
-        textbox = ui_elements.textbox;
-        textbox.str = statistics.getNarrative();
-        return ui.updateLabel(textbox, {
-          update_str: true
-        });
+        type = statistics.getNarrativeType();
+        message = statistics.getNarrative();
+        message = this.macrosubstituteStatisticsValues(message, statistics);
+        return this.storyEvent(type, message, agent_model);
       }
+    };
+
+    TimeTool_DisplayFocusAgentStatistics.prototype.macrosubstituteStatisticsValues = function(message, statistics) {
+      var end_of_word_index, name, prefix, slash_index, suffix, val;
+      slash_index = message.indexOf("\\");
+      while (slash_index > -1) {
+        prefix = message.substring(0, slash_index);
+        suffix = message.substring(slash_index);
+        end_of_word_index = suffix.search(" ");
+        if (end_of_word_index < 0) {
+          end_of_word_index = suffix.length;
+        }
+        name = suffix.substring(1, end_of_word_index);
+        suffix = suffix.substring(end_of_word_index);
+        val = statistics.getValue(name);
+        message = prefix + val + suffix;
+        slash_index = message.indexOf("\\");
+      }
+      return message;
+    };
+
+    TimeTool_DisplayFocusAgentStatistics.prototype.storyEvent = function(type, message, agent_model) {
+      var box, box_sprite, connection, connection_sprite, loc, narration_box, ref, str, text, up;
+      console.log("Type = " + type);
+      console.log("Message = " + message);
+      box_sprite = null;
+      connection_sprite = null;
+      if (type === "say") {
+        box_sprite = "assets/images/speechbox.png";
+        connection_sprite = "assets/images/speech_connection.png";
+      } else if (type === "narrate") {
+        box_sprite = "assets/images/narration_box.png";
+        connection_sprite = "assets/images/narration_connection.png";
+      } else if (type === "think" || type === "food") {
+        box_sprite = "assets/images/thinkbox.png";
+        connection_sprite = "/assets/images/think_connection.png";
+      } else if (type === "good") {
+        box_sprite = "assets/images/good_box.png";
+        connection_sprite = "/assets/images/good_connection.png";
+      } else if (type === "bad") {
+        box_sprite = "assets/images/bad_box.png";
+        connection_sprite = "assets/images/bad_connection.png";
+      } else {
+        console.log("Storytelling Event: '" + type + "' is not currently supported.");
+      }
+      narration_box = new EX.Visual_Factory.newSprite(box_sprite, {
+        x: -677 / 2,
+        y: 47,
+        w: 677,
+        h: 61
+      });
+      connection = new EX.Visual_Factory.newSprite(connection_sprite, {
+        x: 0,
+        y: 0,
+        w: 64,
+        h: 63
+      });
+      str = message;
+      text = EX.Visual_Factory.new_label(str);
+      text.position.z = .1;
+      text.position.y = 47 + 63;
+      text.position.x = -677 / 2 + 20;
+      box = new THREE.Object3D();
+      box.add(narration_box);
+      box.add(connection);
+      box.add(text);
+      ref = agent_model.getCurrentLocationAndHeading(), loc = ref[0], up = ref[1];
+      box.position.copy(loc);
+      box.rotation.z = Math.atan2(up.y, up.x) + Math.PI / 2;
+      box.position.z = 2;
+      return this.scene.addOverlay(box, 1);
+
+      /*
+      textbox = ui_elements.textbox
+      textbox.str = statistics.getNarrative() # standardized label comes from style.
+      ui.updateLabel(textbox, {update_str:true})
+       */
     };
 
     TimeTool_DisplayFocusAgentStatistics.prototype.isIdle = function() {

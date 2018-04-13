@@ -14,9 +14,9 @@ class BSS.Test_Place extends BSS.Place_Element
         #story_map = storyLoader.load_story('assets/stories/00_mvp.txt')
         #story_map = storyLoader.load_story('assets/stories/001_curve.txt')
         #story_map = storyLoader.load_story('assets/stories/002_conditional.txt')
-        story_map = storyLoader.load_story('assets/stories/004_friends.txt')
+        #story_map = storyLoader.load_story('assets/stories/004_friends.txt')
         #story_map = storyLoader.load_story('assets/stories/005_simple_friends.txt')
-        #story_map = storyLoader.load_story('assets/stories/006_operators.txt')
+        story_map = storyLoader.load_story('assets/stories/006_operators.txt')
 
         #@init_place()
         @init_scene_ui()
@@ -84,6 +84,7 @@ class BSS.Test_Place extends BSS.Place_Element
         [ui, ui_elements] = @scene.getUI()
 
         # Construct a label on the bottom of the screen that will perform narration.
+        ###
         w = 1200
         h = 800
         label_h = 50
@@ -103,3 +104,4 @@ class BSS.Test_Place extends BSS.Place_Element
         pLine = new BDS.Polyline(false, [p0, p1, p2, p3])
         textbox_params = {fill:EX.style.c_building_fill, area:pLine, textx:p3.x, texty:p3.y, str:EX.style.resource_name_food + "0"}
         ui_elements.foodbox = ui.createLabel(textbox_params)
+        ###

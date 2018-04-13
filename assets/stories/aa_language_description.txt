@@ -14,9 +14,27 @@ Paths:
  - up  
  - arc
 
-Operators:
+Operators:  // Each of these will eventually contain the ability to display a message and also manipulate the numerical value for the property.
+            // The syntax \name should be replaced at runtime with the variable's name in the statistics field.
+
+            // varname location_on_path [Condition] message [Condition] message
+            // condition: <1 >0 =4, etc. // Different descriptive messages for different states.
  - narrate
- - food
+ - say
+ - think
+ - good
+ - bad
+ 
+ - var
+ 
+// -- A programmer should be able to set global values up front.
+var food /assets/images/narration_connection.png
+food [syntax for value manipulation.] [default is to add 1.]
+
+
+# Thinking.   // Each of these types could be subdivided further.
+# Expressions.
+# Narrations.
 
 Conditionals:
  - fork

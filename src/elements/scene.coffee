@@ -169,3 +169,7 @@ class BSS.Scene
 
     deletePlace: (element) ->
         @_places.delete(element)
+
+    addOverlay: (obj, layer_index) ->
+        view = @_view_levels[layer_index]
+        view.add(obj)
