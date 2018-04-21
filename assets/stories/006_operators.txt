@@ -7,7 +7,7 @@ story Operators
   say 20 Its me world!
   think 30 Where am I?
   good 40 That was good!
-  bad  50 That was bad.
+  bad  50 That was bad. -e Argh!
   food 60 Dumpling.
   narrate 80 You've had \good good experiences.
 the end

@@ -1,5 +1,5 @@
 /*! Sim Urban, a project by Bryce Summers.
- *  Single File concatenated by Grunt Concatenate on 13-04-2018
+ *  Single File concatenated by Grunt Concatenate on 20-04-2018
  */
 // All of the boiler plate, example project stuff should be out of a namespace.
 // all of the procedural elements unique to a project should be within this projects' specific namespace.
@@ -2114,9 +2114,11 @@ Notes:
 
     function Statistics_Model() {
       this._records = {};
-      this._narrative = "Press Up Key to begin journey!";
+      this._narrative = "Press the Up Key to begin journey!";
       this._narrativeChanged = true;
       this._narrativeType = "narrate";
+      this._optionalNarrative = null;
+      this._optionalNarrativeType = "narrate";
     }
 
     Statistics_Model.prototype.buildModel = function() {};
@@ -2162,15 +2164,43 @@ Notes:
 
     Statistics_Model.prototype.setNarrative = function(val) {
       this._narrative = val;
-      return this._narrativeChanged = true;
+      this._narrativeChanged = true;
     };
 
     Statistics_Model.prototype.setNarrativeType = function(type) {
-      return this._narrativeType = type;
+      this._narrativeType = type;
     };
 
     Statistics_Model.prototype.getNarrativeType = function() {
       return this._narrativeType;
+    };
+
+    Statistics_Model.prototype.getOptionalNarrative = function(val) {
+      var out;
+      out = this._optionalNarrative;
+      this._optionalNarrative = null;
+      return out;
+    };
+
+    Statistics_Model.prototype.setOptionalNarrative = function(val) {
+      this._optionalNarrative = val;
+    };
+
+    Statistics_Model.prototype.getOptionalNarrativeType = function() {
+      return _optionalNarrativeType;
+    };
+
+    Statistics_Model.prototype.setOptionalNarrativeType = function(val) {
+      var _optionalNarrativeType;
+      _optionalNarrativeType = val;
+    };
+
+    Statistics_Model.prototype.hasOptionalNarrative = function() {
+      return this._optionalNarrative !== null;
+    };
+
+    Statistics_Model.prototype.forgetOptionalNarrative = function() {
+      return this._optionalNarrative = null;
     };
 
     Statistics_Model.prototype.getValue = function(name) {
@@ -2514,12 +2544,14 @@ Allows for new story block elements to be instantiated. Generates instances, but
     };
 
     Story_Generator.prototype.generateMessage = function(state) {
-      var func, i, j, message, normalized_dist, ref, str, type;
+      var func, message, next_token_index, normalized_dist, optional_message, ref, ref1, start_token_index, type;
       normalized_dist = state.token_list[1];
-      message = "";
-      for (i = j = 2, ref = state.token_list.length; j < ref; i = j += 1) {
-        str = state.token_list[i];
-        message = message + " " + str;
+      start_token_index = 2;
+      ref = this.parseMessage(state.token_list, start_token_index), message = ref[0], next_token_index = ref[1];
+      optional_message = null;
+      if (state.token_list[next_token_index] === "-e") {
+        start_token_index = next_token_index + 1;
+        ref1 = this.parseMessage(state.token_list, start_token_index), optional_message = ref1[0], next_token_index = ref1[1];
       }
       console.log(state.token_list[0]);
       type = state.token_list[0];
@@ -2530,10 +2562,34 @@ Allows for new story block elements to be instantiated. Generates instances, but
           agent_model.statistics.setNarrativeType(type);
           val = agent_model.statistics.getValue(type);
           val = val + 1;
-          return agent_model.statistics.setValue(type, val);
+          agent_model.statistics.setValue(type, val);
+          if (optional_message !== null) {
+            agent_model.statistics.setOptionalNarrative(optional_message);
+            return agent_model.statistics.setOptionalNarrativeType("say");
+          }
         };
       };
       this.addOperatorToPath(func(type), normalized_dist, state, state.token_list[0]);
+    };
+
+    Story_Generator.prototype.parseMessage = function(token_list, start_index) {
+      var i, j, message, ref, ref1, str;
+      message = "";
+      for (i = j = ref = start_index, ref1 = token_list.length; j < ref1; i = j += 1) {
+        str = token_list[i];
+        if (this.tokenIsSyntactic(str)) {
+          break;
+        }
+        message = message + " " + str;
+      }
+      return [message, i];
+    };
+
+    Story_Generator.prototype.tokenIsSyntactic = function(token) {
+      if (token === "-e") {
+        return true;
+      }
+      return false;
     };
 
     Story_Generator.prototype.addOperatorToPath = function(func, normalized_distance, state, type) {
@@ -2602,6 +2658,8 @@ Story loader class.
 
 Written by Bryce Summers on Mar.27.2018.
 Purpose: creates a named set of story generators from the given text file.
+
+Tokenizes and segments an input file of text into lines and text blocks.
  */
 
 (function() {
@@ -3635,6 +3693,109 @@ Purpose: Creates THREE.js paths.
 // Generated by CoffeeScript 1.11.1
 
 /*
+
+FrameAnimation class.
+Written by Bryce Summers on 4.20.2018
+(While recovering from flu fatigue.)
+
+Cycles through a set of images at a particular position.
+ */
+
+(function() {
+  var extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    hasProp = {}.hasOwnProperty;
+
+  EX.FrameAnimation = (function(superClass) {
+    extend(FrameAnimation, superClass);
+
+    function FrameAnimation() {
+      var view;
+      FrameAnimation.__super__.constructor.call(this);
+      view = this.getVisual();
+      this._total_time = 0;
+      this._time_elapsed = 0;
+      this._time_per_frame = 1;
+      this._frames = [];
+      this._frame_index = 0;
+      this._frame_sprite = null;
+    }
+
+
+    /*
+    Configuration.
+     */
+
+    FrameAnimation.prototype.configure = function(config) {
+      this.setDuration(config.duration);
+      this.setTimePerFrame(config.timePerFrame);
+      this.loadFrames(config.frames, config.dim);
+      return this.restart();
+    };
+
+    FrameAnimation.prototype.setDuration = function(time) {
+      this._total_time = time;
+    };
+
+    FrameAnimation.prototype.setTimePerFrame = function(time) {
+      this._time_per_frame = time;
+    };
+
+    FrameAnimation.prototype.loadFrames = function(frame_list, dim) {
+      var frame, frame_filename, i, len;
+      this._frames = [];
+      this._frame_index = 0;
+      for (i = 0, len = frame_list.length; i < len; i++) {
+        frame_filename = frame_list[i];
+        if (frame_filename !== null) {
+          frame = EX.Visual_Factory.newSprite(frame_filename, dim);
+          this._frames.push(frame);
+        }
+      }
+    };
+
+    FrameAnimation.prototype.restart = function() {
+      this._time_elapsed = 0;
+      this._frame_index = 0;
+    };
+
+    FrameAnimation.prototype.finish = function() {
+      return this._time_elapsed = this._total_time;
+    };
+
+
+    /*
+    User Interface.
+     */
+
+    FrameAnimation.prototype.isDone = function() {
+      return this._total_time >= this._time_elapsed;
+    };
+
+    FrameAnimation.prototype.time = function(dt) {
+      this._time_elapsed += dt;
+      if (this._time_elapsed > this._total_time) {
+        this._time_elapsed = this._total_time;
+        this._frame_index = 0;
+        return;
+      }
+      if (this._frames.length > 0) {
+        this._frame_index = Math.floor(this._time_elapsed / this._time_per_frame) % this._frames.length;
+        if (this._frame_sprite !== null) {
+          view.remove(this._frame_sprite);
+        }
+        this._frame_sprite;
+      }
+    };
+
+    return FrameAnimation;
+
+  })(BSS.Element);
+
+}).call(this);
+
+// Generated by CoffeeScript 1.11.1
+
+/*
     Overlays
     Written by Bryce on May.4.2017
     Adapted by Bryce Summers on Mar.22.2018
@@ -4013,10 +4174,11 @@ Updates the scene's ui based on the statistics of the focus agent.
     function TimeTool_DisplayFocusAgentStatistics(scene, camera) {
       this.scene = scene;
       this.camera = camera;
+      this._optionAnimation = null;
     }
 
     TimeTool_DisplayFocusAgentStatistics.prototype.time = function(dt) {
-      var agent_model, focus_agent, message, ref, statistics, type, ui, ui_elements;
+      var agent_model, config, focus_agent, message, ref, statistics, type, ui, ui_elements;
       focus_agent = this.scene.getFocusAgent();
       if (focus_agent === null) {
         return;
@@ -4029,7 +4191,45 @@ Updates the scene's ui based on the statistics of the focus agent.
         type = statistics.getNarrativeType();
         message = statistics.getNarrative();
         message = this.macrosubstituteStatisticsValues(message, statistics);
-        return this.storyEvent(type, message, agent_model);
+        if (statistics.hasOptionalNarrative()) {
+          this._optionAnimation = new EX.FrameAnimation();
+          config = {
+            duration: 2000,
+            timePerFrame: 100,
+            frames: ["assets/images/speechbox.png", expression.png],
+            dim: {
+              x: -677 / 2,
+              y: 47,
+              w: 677,
+              h: 61
+            }
+          };
+          this._optionAnimation.configure(config);
+        }
+        return this.storyEvent(type, message, agent_model, this._optionAnimation);
+      }
+    };
+
+    TimeTool_DisplayFocusAgentStatistics.prototype.keyEvent = function(key) {
+      var agent_model, focus_agent, message, ref, statistics, ui, ui_elements;
+      if (key === 'space' && this._optionAnimation !== null) {
+        if (this._optionAnimation.isDone()) {
+          this._optionAnimation = null;
+          return;
+        }
+        focus_agent = this.scene.getFocusAgent();
+        if (focus_agent === null) {
+          return;
+        }
+        ref = this.scene.getUI(), ui = ref[0], ui_elements = ref[1];
+        agent_model = focus_agent.getModel();
+        statistics = agent_model.getStatistics();
+        if (statistics.hasOptionalNarrative()) {
+          message = statistics.getOptionalNarrative();
+          message = this.macrosubstituteStatisticsValues(message, statistics);
+          this.storyEvent(type, message, agent_model, null);
+          return this._optionAnimation.finish();
+        }
       }
     };
 
@@ -4052,7 +4252,7 @@ Updates the scene's ui based on the statistics of the focus agent.
       return message;
     };
 
-    TimeTool_DisplayFocusAgentStatistics.prototype.storyEvent = function(type, message, agent_model) {
+    TimeTool_DisplayFocusAgentStatistics.prototype.storyEvent = function(type, message, agent_model, option_animation) {
       var box, box_sprite, connection, connection_sprite, loc, narration_box, ref, str, text, up;
       console.log("Type = " + type);
       console.log("Message = " + message);
@@ -4076,13 +4276,13 @@ Updates the scene's ui based on the statistics of the focus agent.
       } else {
         console.log("Storytelling Event: '" + type + "' is not currently supported.");
       }
-      narration_box = new EX.Visual_Factory.newSprite(box_sprite, {
+      narration_box = EX.Visual_Factory.newSprite(box_sprite, {
         x: -677 / 2,
         y: 47,
         w: 677,
         h: 61
       });
-      connection = new EX.Visual_Factory.newSprite(connection_sprite, {
+      connection = EX.Visual_Factory.newSprite(connection_sprite, {
         x: 0,
         y: 0,
         w: 64,
@@ -4097,6 +4297,9 @@ Updates the scene's ui based on the statistics of the focus agent.
       box.add(narration_box);
       box.add(connection);
       box.add(text);
+      if (option_animation !== null) {
+        box.add(option_animation);
+      }
       ref = agent_model.getCurrentLocationAndHeading(), loc = ref[0], up = ref[1];
       box.position.copy(loc);
       box.rotation.z = Math.atan2(up.y, up.x) + Math.PI / 2;

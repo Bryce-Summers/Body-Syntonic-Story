@@ -8,6 +8,8 @@ class EX.TimeTool_DisplayFocusAgentStatistics extends EX.I_Tool_Controller
     # THREE.js
     constructor: (@scene, @camera) ->
 
+        @_optionAnimation = null
+
     time: (dt) ->
 
 
@@ -29,7 +31,52 @@ class EX.TimeTool_DisplayFocusAgentStatistics extends EX.I_Tool_Controller
             message = statistics.getNarrative()
             message = @macrosubstituteStatisticsValues(message, statistics)
 
-            @storyEvent(type, message, agent_model)
+            
+
+            # In the event of an optional narrative change.
+            # We set a timer. Within that time we indicate that the user can trigger the narrative event.
+            if statistics.hasOptionalNarrative()
+
+                @_optionAnimation = new EX.FrameAnimation()
+
+                # Configure all properties at once.
+                # {duration:, timePerFrame:, frames:[filename, fname, fname, ...], dim:}
+                # 2 second duration, .1 seconds per frame.
+                # links between expression bubble and no expression bubble.
+                config = {duration: 2000, timePerFrame: 100, frames: ["assets/images/speechbox.png", expression.png], dim: {x: -677/2, y:47, w:677, h:61}}
+                @_optionAnimation.configure(config)
+
+            @storyEvent(type, message, agent_model, @_optionAnimation)
+
+    keyEvent: (key) ->
+
+
+        # On space, launch non- expired optional narrative.
+
+        # If statistics has an optional narrative and the time hasn't expired, the user can signal an event using the space key.
+        # If time has not yet expired and the statistics ha
+        if key == 'space' and @_optionAnimation != null
+
+            # If it is done, we no longer need to remember it.
+            if @_optionAnimation.isDone()
+                @_optionAnimation = null
+                return
+
+            focus_agent = @scene.getFocusAgent()
+            return if focus_agent == null
+
+            [ui, ui_elements] = @scene.getUI()
+            agent_model = focus_agent.getModel()
+            statistics  = agent_model.getStatistics()
+
+            if statistics.hasOptionalNarrative()
+
+                message = statistics.getOptionalNarrative()
+                message = @macrosubstituteStatisticsValues(message, statistics)
+
+                @storyEvent(type, message, agent_model, null)
+                @_optionAnimation.finish()
+
 
     # String, BSS.Statistics_Model -> Replaces \name with value of name in statics.
     macrosubstituteStatisticsValues: (message, statistics) ->
@@ -58,7 +105,7 @@ class EX.TimeTool_DisplayFocusAgentStatistics extends EX.I_Tool_Controller
 
 
     # Type in {say, narrate, think, good, bad}
-    storyEvent: (type, message, agent_model) ->
+    storyEvent: (type, message, agent_model, option_animation) ->
 
         console.log("Type = " + type)
         console.log("Message = " + message)
@@ -85,8 +132,8 @@ class EX.TimeTool_DisplayFocusAgentStatistics extends EX.I_Tool_Controller
             console.log("Storytelling Event: '" + type + "' is not currently supported.")
 
         # Create a new narrative box.
-        narration_box = new EX.Visual_Factory.newSprite(box_sprite, {x: -677/2, y:47, w:677, h:61})
-        connection    = new EX.Visual_Factory.newSprite(connection_sprite, {x:0, y:0, w:64, h:63})
+        narration_box = EX.Visual_Factory.newSprite(box_sprite, {x: -677/2, y:47, w:677, h:61})
+        connection    = EX.Visual_Factory.newSprite(connection_sprite, {x:0, y:0, w:64, h:63})
 
         # Text message.
         str = message
@@ -100,6 +147,10 @@ class EX.TimeTool_DisplayFocusAgentStatistics extends EX.I_Tool_Controller
         box.add(narration_box)
         box.add(connection)
         box.add(text)
+
+        # Add option animation to signal the ability to express.
+        if option_animation != null
+            box.add(option_animation)
 
         # Position in World.
         [loc, up] = agent_model.getCurrentLocationAndHeading()

@@ -26,9 +26,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="8"
-     inkscape:cx="600.53591"
-     inkscape:cy="-138.063"
+     inkscape:zoom="1.4142136"
+     inkscape:cx="287.32385"
+     inkscape:cy="-56.171156"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -1601,6 +1601,32 @@
          cx="565.29797"
          id="path5188-1-9-5-8-6"
          style="opacity:1;fill:#ff8080;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+    </g>
+    <g
+       id="g4901"
+       inkscape:export-filename="D:\GIT\Body-Syntonic-Story\assets\images\express_option.png"
+       inkscape:export-xdpi="100"
+       inkscape:export-ydpi="100">
+      <image
+         width="40"
+         height="40"
+         preserveAspectRatio="none"
+         xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAAABHNCSVQICAgIfAhkiAAAAAlwSFlz AAAN1wAADdcBQiibeAAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAFbSURB VFiF7dYxSgNBFMbxLy+OO5nZFdYIgSBhOzubdArWaUIKkXgEU6S0FS+wVimDpxAsJYWlJwjxAAlB CCFZdTNrY5FsRhECO4rz696r/t17gGVZlvWr5TS7I875vRBikXlNynQ6TbY0+71yuZwfDAY7mRct ieMYjDGQyYifsIGbsoGbsoGb0gUGk8mEZ17yhbVAx3HqjUYjbyJGJ31JpFLqpNVqAQDa7Xbc7/ff SqVS5mdPKQUAXjrwLAiCuFqtbvd6PXS73TiKoksAo6wDP81WJtd1nzqdTjIcDpNisTgHcG6mS++A MfY+Ho+TWq02k1Lemg5awRi7aTab8zAMF1LKZwDCdNMyVigUXsIwTBzHiQAcmg5KO/V9/7VSqcwY YxemY9a4rvtARInneXemW3T2iUgJIUYAdk3HrCGiayJaADg23aLFOX/knF+Z7vhODn/gq7Esy/qv PgCikVLbpeB7DgAAAABJRU5ErkJggg== "
+         id="image5659-7"
+         x="242"
+         y="1183.3622" />
+      <text
+         sodipodi:linespacing="125%"
+         id="text4897"
+         y="1201.353"
+         x="249.27296"
+         style="font-style:normal;font-weight:normal;font-size:180px;line-height:125%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         xml:space="preserve"><tspan
+           style="font-size:10px"
+           y="1201.353"
+           x="249.27296"
+           id="tspan4899"
+           sodipodi:role="line">Space</tspan></text>
     </g>
   </g>
 </svg>

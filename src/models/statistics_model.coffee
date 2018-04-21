@@ -17,10 +17,14 @@ class BSS.Statistics_Model extends BSS.Model
         # Also contains values for custom story specific variables like food, courage, etc.
         @_records = {}
 
-
-        @_narrative = "Press Up Key to begin journey!"
+        # Main Narrative.
+        @_narrative = "Press the Up Key to begin journey!"
         @_narrativeChanged = true
         @_narrativeType = "narrate"
+
+        # Optional Narrative.
+        @_optionalNarrative = null
+        @_optionalNarrativeType = "narrate"
 
     buildModel: () ->
 
@@ -53,6 +57,8 @@ class BSS.Statistics_Model extends BSS.Model
         return false
 
     getNarrative: () ->
+        # FIXME: Log type! records.type += 1.
+        # ASSUMPTION: this is broadcast onscreen to user when read.
         return @_narrative
 
     # Get the type of narrative change. Perhaps I should retitle this 'expression'
@@ -60,12 +66,50 @@ class BSS.Statistics_Model extends BSS.Model
     setNarrative: (val) ->
         @_narrative = val
         @_narrativeChanged = true
+        return
 
     setNarrativeType: (type) ->
         @_narrativeType = type
+        return
 
     getNarrativeType: () ->
         return @_narrativeType
+
+
+
+    # Optional Narrative.
+
+    # The Optional narrative may be retrieved 1 time only.
+    getOptionalNarrative: (val) ->
+        out = @_optionalNarrative
+        @_optionalNarrative = null
+
+        # FIXME: Log type! records.type += 1.
+        # ASSUMPTION: this is broadcast onscreen to user when read.
+
+        return out
+
+    setOptionalNarrative: (val) ->
+        @_optionalNarrative = val
+        return
+
+    getOptionalNarrativeType: () ->
+        return _optionalNarrativeType
+
+    setOptionalNarrativeType: (val) ->
+        _optionalNarrativeType = val
+        return
+
+
+    # Unlike the main narrative that triggers events when it changes,
+    # The optional narrative is either present or not.
+    hasOptionalNarrative: () ->
+        return @_optionalNarrative != null
+
+    # An external force can command that we forget about the optional narrative.
+    # for instane under a time limit.
+    forgetOptionalNarrative: () ->
+        @_optionalNarrative = null
 
     getValue: (name) ->
 

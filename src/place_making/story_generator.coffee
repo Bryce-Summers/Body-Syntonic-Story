@@ -381,10 +381,15 @@ class BSS.Story_Generator
         normalized_dist = state.token_list[1]
 
         # Rejoin narrative sentance from tokens.
-        message = ""
-        for i in [2...state.token_list.length] by 1
-            str = state.token_list[i]
-            message = message + " " + str
+        # Go until we hit a special token like =, <=, or -e
+        start_token_index = 2
+        [message, next_token_index] = @parseMessage(state.token_list, start_token_index)
+
+        # Their might be an optional expression message.
+        optional_message = null
+        if state.token_list[next_token_index] == "-e"
+            start_token_index = next_token_index + 1
+            [optional_message, next_token_index] = @parseMessage(state.token_list, start_token_index)
 
         # FIXME: Update the various statistics.
         console.log(state.token_list[0])
@@ -401,10 +406,40 @@ class BSS.Story_Generator
             val = agent_model.statistics.getValue(type)
             val = val + 1
             agent_model.statistics.setValue(type, val)
+
+            if optional_message != null
+                agent_model.statistics.setOptionalNarrative(optional_message)
+                agent_model.statistics.setOptionalNarrativeType("say")
             )
         @addOperatorToPath(func(type), normalized_dist, state, state.token_list[0])
 
         return
+
+    # Returns [message, index_of_next_token]
+    # Takes all of the tokens until the next syntactic token and joins them together.
+    parseMessage: (token_list, start_index) ->
+
+        message = ""
+        for i in [start_index...token_list.length] by 1
+
+            str = token_list[i]
+
+            # Stop on special tokens.
+            if @tokenIsSyntactic(str)
+                break
+
+            message = message + " " + str
+
+        return [message, i]
+
+    # A predicate function that returns true if the token is syntactic.
+    # I.E. -e, etc.
+    tokenIsSyntactic: (token) ->
+        if token == "-e"
+            return true
+
+        return false
+
 
     # Creates an operator, adds it to the given path, adds it to the output.
     addOperatorToPath: (func, normalized_distance, state, type) ->

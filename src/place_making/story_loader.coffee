@@ -5,6 +5,8 @@ Story loader class.
 Written by Bryce Summers on Mar.27.2018.
 Purpose: creates a named set of story generators from the given text file.
 
+Tokenizes and segments an input file of text into lines and text blocks.
+
 ###
 class BSS.Story_Loader
 

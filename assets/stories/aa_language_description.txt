@@ -20,12 +20,13 @@ Operators:  // Each of these will eventually contain the ability to display a me
             // varname location_on_path [Condition] message [Condition] message
             // condition: <1 >0 =4, etc. // Different descriptive messages for different states.
  - narrate
- - say
  - think
- - good
- - bad
- 
+ - good  
+ - bad      // bad 10 Stale Potatoes -e Those potatoes were horrible. // Thinking with an option of expressing.
  - var
+
+ - say
+
  
 // -- A programmer should be able to set global values up front.
 var food /assets/images/narration_connection.png
